@@ -9,7 +9,7 @@ config({
   path: path.resolve(process.cwd(), envFile),
 });
 
-// process.env.AUTH_USER = "XXXXXX";
+// process.env.AUTH_USER = "XXXXXXXX";
 // process.env.AUTH_PASS = "XXXXXXXX";
 
 export const mcpServer = new McpServer({
