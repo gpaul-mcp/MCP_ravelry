@@ -1,6 +1,6 @@
 import { DetailedPattern, MultipleDetailedPatternResponse } from '@/types/patternDetailed';
 import Pattern, { SimplePatternReponse } from '@/types/patternSimple';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
 type ResponseType = SimplePatternReponse | DetailedPattern | MultipleDetailedPatternResponse | null;
 
@@ -21,7 +21,7 @@ export default class Ravelry {
         },
       });
       return response.data;
-    } catch (error: unknown | AxiosError) {
+    } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         console.error(error.response?.data);
         return null;
