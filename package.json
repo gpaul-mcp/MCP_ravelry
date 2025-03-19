@@ -5,7 +5,9 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node -r tsconfig-paths/register dist/index.js",
     "dev": "cross-env NODE_ENV=development nodemon -r tsconfig-paths/register src/index.ts",
+    "prebuild": "ts-node scripts/prepare-build.ts",
     "build": "tsc --project tsconfig.json && tscpaths -p tsconfig.json -s ./src -o ./dist",
+    "postbuild": "git checkout -- src/index.ts",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -15,7 +17,10 @@
     "test": "jest"
   },
   "dependencies": {
-    "dotenv": "^16.0.3"
+    "@modelcontextprotocol/sdk": "^1.7.0",
+    "axios": "^1.8.3",
+    "dotenv": "^16.0.3",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
