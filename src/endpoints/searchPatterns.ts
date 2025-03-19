@@ -27,7 +27,7 @@ mcpServer.tool(
         };
       }
 
-      let response = patterns.map(pattern => {
+      const response = patterns.map(pattern => {
         return {
           free: pattern.free,
           id: pattern.id,

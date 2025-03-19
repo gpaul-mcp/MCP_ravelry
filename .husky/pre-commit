@@ -1,4 +1,8 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# Run lint-staged for code quality checks
 npx lint-staged
+
+# Run tests only for affected files
+npx ts-node scripts/run-relevant-tests.ts
