@@ -9,6 +9,9 @@
 - Encrypted SQLite storage (hashed keys, AES-256-GCM records) in a `ravelry-data` Docker volume.
 - `match_yarns`: matches yarn read from a ball band, receipt or invoice to Ravelry yarns, scored on name, weight, yardage, grams and fiber with a confidence level.
 - `add_to_my_stash` and `add_to_my_queue` (new `ravelry:write` scope, additive only, duplicates skipped) and an "Add yarn to my stash from a photo" prompt.
+- Project tracking that keeps the stash accurate, using Ravelry's own yarn bookkeeping (packs): `start_project`, `log_project_progress` (progress log in the project's private notes, yarn used so far), `update_project_status` (finish: leftovers kept, empty yarn marked used up; frog: yarn returned), `get_my_project`. Stash tools now report free yarn (total minus what projects use).
+- `update_stash_entry` and `remove_from_stash`; the write permission now covers add, update and remove.
+- `scripts/live-account-check.ts`: end-to-end check of the personal tools against a real account (creates and removes test data).
 - Interactive cards (MCP Apps): pattern, yarn, stash, queue, receipt-match, shop and profile views rendered in the chat, built with Vite into a single HTML resource.
 - New settings: `RAVELRY_OAUTH_CLIENT_ID`, `RAVELRY_OAUTH_CLIENT_SECRET`, `PUBLIC_URL`, `AUTH_SECRET`, `DATA_DIR`.
 

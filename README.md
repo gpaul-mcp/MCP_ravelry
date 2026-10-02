@@ -108,10 +108,26 @@ What the server stores: your Ravelry username and its Ravelry sign-in tokens, en
 | `pick_from_my_queue`         | Ranks your queue by what your stash already covers: planned yarn on hand, enough yarn of the right weight, or how many yards you're short.                                               |
 | `add_to_my_stash`            | Adds yarn to your stash (e.g. from a receipt photo) with colorway, dye lot, skeins, length, weight, price, shop and purchase date. Skips yarn already stashed.                           |
 | `add_to_my_queue`            | Queues patterns, optionally with the yarn you plan to use and a note. Skips patterns already queued.                                                                                     |
+| `get_my_project`             | One project: pattern, status, progress, the stash yarn it uses, and its progress log.                                                                                                    |
+| `start_project`              | Starts a project from a pattern (or a queued pattern, which leaves the queue) and sets stash yarn aside for it.                                                                          |
+| `log_project_progress`       | "Row 42 of the sleeve, used 1 skein": adds a dated line to the project's private log, sets the %, and records yarn used so far.                                                          |
+| `update_project_status`      | Finish (leftovers stay in the stash, empty yarn becomes used up), pause, resume or frog (yarn goes back).                                                                                |
+| `update_stash_entry`         | Fix colorway, dye lot, location, notes, status or the total owned.                                                                                                                       |
+| `remove_from_stash`          | Permanently delete stash entries (only when you ask; "used up" keeps the history).                                                                                                       |
 
 Plus three extra starters: **What should I make next?**, **Use up my stash** and **Add yarn to my stash from a photo**.
 
-Adding needs one extra permission ("add yarn to your stash and patterns to your queue"), asked on the same consent page. Nothing is ever edited or deleted, and your assistant asks you before each addition.
+Changing anything needs one extra permission ("add, update and remove" on your stash, queue and projects), asked on the same consent page. Your assistant confirms before each change.
+
+#### Keeping the stash up to date
+
+Ravelry itself does the yarn bookkeeping: when a project uses part of a stash entry, Ravelry keeps that amount aside and the rest stays free. So the assistant works through projects:
+
+1. **Start**: "Let's start Musselburgh with my teal Rios": the project is created and the yarn is set aside.
+2. **Work**: "I'm at row 42 of the brim, used about one skein": a dated line goes into the project's private notes (your progress log) and the yarn used is updated. Next time, "where was I?" reads that log.
+3. **Finish or frog**: finished projects keep their yarn and the leftovers stay in your stash (yarn with nothing left becomes "used up"); frogged projects give the yarn back.
+
+That way "what can I make with my stash?" and "what can I start from my queue?" only count yarn that is really free.
 
 ### Cards in the chat
 

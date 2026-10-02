@@ -65,7 +65,33 @@ interface StashEntry {
   colorway: string | null;
   skeins: number | null;
   yards: number | null;
+  total_yards?: number | null;
+  in_projects?: { project_id: number; yards: number | null }[];
   location: string | null;
+}
+
+interface ProjectView {
+  id: number;
+  name: string;
+  url: string | null;
+  pattern: string | null;
+  pattern_url: string | null;
+  status: string | null;
+  progress: number | null;
+  started: string | null;
+  completed: string | null;
+  size: string | null;
+  yarn: {
+    yarn: string | null;
+    colorway: string | null;
+    yards: number | null;
+    skeins: number | null;
+  }[];
+  pattern_needs: string | null;
+  log: string | null;
+  removed_from_queue?: boolean;
+  marked_used_up?: number[];
+  released_yarn?: boolean;
 }
 
 type Data = Record<string, unknown>;
@@ -646,8 +672,22 @@ function renderStash(data: Data) {
               { class: 'chips' },
               entry.weight && chip(titleCase(entry.weight), 'accent'),
               entry.skeins ? chip(`${entry.skeins} skein${entry.skeins === 1 ? '' : 's'}`) : null,
-              entry.yards ? chip(`${entry.yards} yd`) : null,
+              entry.yards !== null
+                ? chip(
+                    entry.total_yards && entry.total_yards !== entry.yards
+                      ? `${entry.yards} of ${entry.total_yards} yd free`
+                      : `${entry.yards} yd`,
+                    entry.yards === 0 ? 'warn' : '',
+                  )
+                : null,
             ),
+            entry.in_projects?.length
+              ? h(
+                  'div',
+                  { class: 'byline' },
+                  `🧶 In ${entry.in_projects.length} project${entry.in_projects.length === 1 ? '' : 's'}`,
+                )
+              : null,
             entry.location && h('div', { class: 'byline' }, `📦 ${entry.location}`),
             h(
               'div',
@@ -897,7 +937,102 @@ function renderAdded(data: Data, kind: 'stash' | 'queue') {
 
 // ---- Dispatch ----
 
+// ---- Projects ----
+
+function renderProject(data: Data): Child[] {
+  const project = data as unknown as ProjectView;
+  const progress = Math.max(0, Math.min(100, project.progress ?? 0));
+  const fill = h('div', { class: 'fill' });
+  fill.style.width = `${progress}%`;
+  const statusTone = /finished/i.test(project.status ?? '')
+    ? 'good'
+    : /frogged/i.test(project.status ?? '')
+      ? 'bad'
+      : /hibernat/i.test(project.status ?? '')
+        ? 'warn'
+        : 'accent';
+  const log = (project.log ?? '').split('\n').filter(Boolean).slice(-6).reverse();
+  const notices = [
+    project.removed_from_queue && 'Removed from your queue.',
+    project.released_yarn && 'The yarn went back to your stash.',
+    project.marked_used_up?.length &&
+      `${project.marked_used_up.length} stash yarn${project.marked_used_up.length === 1 ? '' : 's'} marked as used up.`,
+  ].filter(Boolean) as string[];
+
+  return [
+    h(
+      'div',
+      { class: 'hero' },
+      h(
+        'div',
+        { class: 'name' },
+        `🧶 ${project.name}`,
+        project.status && chip(project.status, statusTone),
+      ),
+      project.pattern &&
+        h('p', {}, `Pattern: ${project.pattern}${project.size ? ` · size ${project.size}` : ''}`),
+      h(
+        'div',
+        { class: 'need' },
+        `${progress}% done${project.started ? ` · started ${project.started}` : ''}${project.completed ? ` · finished ${project.completed}` : ''}`,
+        h('div', { class: 'track' }, fill),
+      ),
+    ),
+    project.yarn.length > 0 && h('h3', {}, 'Yarn'),
+    project.yarn.length > 0 &&
+      h(
+        'div',
+        { class: 'rows' },
+        ...project.yarn.map(yarn =>
+          h(
+            'div',
+            { class: 'row' },
+            h('div', { class: 'thumb' }, '🧶'),
+            h(
+              'div',
+              { class: 'main' },
+              h('div', { class: 'title' }, yarn.yarn ?? 'Yarn'),
+              yarn.colorway && h('div', { class: 'byline' }, yarn.colorway),
+              h(
+                'div',
+                { class: 'chips' },
+                yarn.yards !== null ? chip(`${yarn.yards} yd`, 'accent') : null,
+                yarn.skeins ? chip(`${yarn.skeins} skein${yarn.skeins === 1 ? '' : 's'}`) : null,
+              ),
+            ),
+          ),
+        ),
+      ),
+    project.pattern_needs &&
+      h('div', { class: 'notice' }, `The pattern calls for ${project.pattern_needs}.`),
+    log.length > 0 && h('h3', {}, 'Progress log'),
+    log.length > 0 &&
+      h('div', { class: 'rows' }, ...log.map(line => h('div', { class: 'receipt' }, line))),
+    ...notices.map(text => h('div', { class: 'notice' }, text)),
+    h(
+      'div',
+      { class: 'actions' },
+      project.url && linkButton(project.url, 'Project ↗'),
+      project.pattern_url && linkButton(project.pattern_url, 'Pattern ↗'),
+      !/finished|frogged/i.test(project.status ?? '') &&
+        h(
+          'button',
+          {
+            onclick: () => {
+              ask(`I've made progress on "${project.name}" (project ${project.id}): `);
+            },
+          },
+          'Log progress',
+        ),
+    ),
+  ];
+}
+
 const renderers: Record<string, (data: Data) => Child[]> = {
+  get_my_project: renderProject,
+  start_project: renderProject,
+  log_project_progress: renderProject,
+  update_project_status: renderProject,
   search_patterns: renderPatternSearch,
   get_pattern_details: renderPatternDetails,
   search_yarns: data => renderYarns(data),

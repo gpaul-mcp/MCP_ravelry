@@ -22,7 +22,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['test/**'],
+    files: ['test/**', 'scripts/**'],
     rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
   },
   {

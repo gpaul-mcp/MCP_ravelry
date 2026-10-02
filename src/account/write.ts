@@ -6,7 +6,7 @@ import { RavelryApiError } from '../ravelry/client.ts';
 import { YARN_WEIGHTS } from '../ravelry/vocabulary.ts';
 import { patternUrl } from '../tools/format.ts';
 import type { UserContext } from './context.ts';
-import { loadStash } from './stash.ts';
+import { loadStash, stashEntrySchema, toStashEntry } from './stash.ts';
 import { VIEW_META } from '../view.ts';
 
 /** Ravelry's yarn weight ids (from /yarn_weights.json), for yarns not in its database. */
@@ -120,7 +120,9 @@ export function registerAccountWrites(server: McpServer, user: UserContext): voi
     },
     async ({ entries, allow_duplicates }, ctx) => {
       const signal = ctx.mcpReq.signal;
-      const existing = allow_duplicates ? [] : await loadStash(user, signal);
+      const existing = allow_duplicates
+        ? []
+        : await loadStash(user, signal, { freeAmounts: false });
       const output = {
         added: [] as { stash_id: number; yarn: string; colorway: string | null; url: string }[],
         skipped_duplicates: [] as { index: number; yarn: string; existing_stash_id: number }[],
@@ -149,9 +151,7 @@ export function registerAccountWrites(server: McpServer, user: UserContext): voi
           );
           output.added.push({
             stash_id: stash.id,
-            yarn: stash.yarn
-              ? `${stash.yarn.yarn_company_name ?? ''} ${stash.yarn.name}`.trim()
-              : (stash.name ?? entry.yarn_name ?? 'yarn'),
+            yarn: toStashEntry(stash).yarn,
             colorway: stash.colorway_name ?? entry.colorway ?? null,
             url: `https://www.ravelry.com/people/${encodeURIComponent(user.username)}/stash/${stash.permalink ?? stash.id}`,
           });
@@ -261,7 +261,103 @@ export function registerAccountWrites(server: McpServer, user: UserContext): voi
       return json(output);
     },
   );
+
+  server.registerTool(
+    'update_stash_entry',
+    {
+      title: 'Update a stash entry',
+      description:
+        'Corrects or updates one stash entry: colorway, dye lot, where it is stored, notes, status ' +
+        '(in-stash, used-up, will-trade, gone), or how much the user owns in total (skeins or ' +
+        'length; Ravelry keeps what projects use separately). To record yarn used by a project, ' +
+        'use log_project_progress instead.',
+      inputSchema: z.object({
+        stash_id: z.number().int().positive().describe('From get_my_stash.'),
+        colorway: z.string().trim().max(150).optional(),
+        dye_lot: z.string().trim().max(50).optional(),
+        location: z.string().trim().max(150).optional(),
+        notes: z.string().trim().max(2000).optional().describe('Replaces the current notes.'),
+        status: z.enum(['in-stash', 'used-up', 'will-trade', 'gone']).optional(),
+        total_skeins: z.number().positive().max(1000).optional(),
+        total_length: z.number().positive().optional(),
+        length_units: z.enum(['yards', 'meters']).default('yards'),
+      }),
+      outputSchema: z.object({ stash: stashEntrySchema }),
+      annotations: { ...additive, destructiveHint: true, idempotentHint: true },
+      scopeChallenge: requireScopes(ACCOUNT_SCOPE, WRITE_SCOPE),
+    },
+    async (input, ctx) => {
+      const signal = ctx.mcpReq.signal;
+      const { stash: current } = await user.ravelry.getStash(user.username, input.stash_id, signal);
+      const changes = withoutUndefined({
+        location: input.location,
+        notes: input.notes,
+        stash_status_id: input.status ? STASH_STATUS_IDS[input.status] : undefined,
+        pack: withoutUndefined({ colorway: input.colorway, dye_lot: input.dye_lot }),
+      });
+      if (Object.keys(changes.pack as object).length === 0) delete changes.pack;
+      if (Object.keys(changes).length > 0) {
+        await user.ravelry.updateStash(user.username, input.stash_id, changes, signal);
+      }
+
+      const primary =
+        current.primary_pack?.id ??
+        current.packs?.find(pack => !pack.project_id && !pack.primary_pack_id)?.id;
+      if (primary && (input.total_skeins || input.total_length)) {
+        await user.ravelry.updatePack(
+          primary,
+          input.total_skeins
+            ? { skeins: String(input.total_skeins) }
+            : { total_length: String(input.total_length), length_units: input.length_units },
+          signal,
+        );
+      }
+
+      const { stash } = await user.ravelry.getStash(user.username, input.stash_id, signal);
+      return json({ stash: toStashEntry(stash) });
+    },
+  );
+
+  server.registerTool(
+    'remove_from_stash',
+    {
+      title: 'Delete stash entries',
+      description:
+        'Permanently deletes stash entries from Ravelry. Only when the user explicitly asks to ' +
+        'delete (e.g. added by mistake); for yarn that was used, given away or sold, prefer ' +
+        'update_stash_entry with status used-up or gone, which keeps the history.',
+      inputSchema: z.object({
+        stash_ids: z.array(z.number().int().positive()).min(1).max(20),
+      }),
+      outputSchema: z.object({
+        deleted: z.array(z.object({ stash_id: z.number(), yarn: z.string() })),
+        failed: z.array(z.object({ stash_id: z.number(), error: z.string() })),
+      }),
+      annotations: { ...additive, destructiveHint: true, idempotentHint: true },
+      scopeChallenge: requireScopes(ACCOUNT_SCOPE, WRITE_SCOPE),
+    },
+    async ({ stash_ids }, ctx) => {
+      const signal = ctx.mcpReq.signal;
+      const output = {
+        deleted: [] as { stash_id: number; yarn: string }[],
+        failed: [] as { stash_id: number; error: string }[],
+      };
+      for (const stashId of new Set(stash_ids)) {
+        try {
+          const { stash } = await user.ravelry.deleteStash(user.username, stashId, signal);
+          output.deleted.push({ stash_id: stashId, yarn: toStashEntry(stash).yarn });
+        } catch (error) {
+          if (signal.aborted) throw error;
+          output.failed.push({ stash_id: stashId, error: errorMessage(error) });
+        }
+      }
+      return json(output);
+    },
+  );
 }
+
+/** Ravelry's stash status ids (Stash POST docs). */
+const STASH_STATUS_IDS = { 'in-stash': 1, 'used-up': 2, 'will-trade': 3, gone: 4 } as const;
 
 function toStashPost(entry: StashEntryInput): Record<string, unknown> {
   const pack: Record<string, unknown> = {

@@ -80,7 +80,21 @@ export interface ApiPatternsResponse {
   patterns: Record<string, ApiPattern>;
 }
 
+/** An allocation of yarn: a stash entry's total, its unallocated remainder, or what a project uses. */
 export interface ApiPack {
+  id?: number;
+  stash_id?: number | null;
+  project_id?: number | null;
+  /** Set on remainder and project packs: the stash's total (primary) pack. */
+  primary_pack_id?: number | null;
+  skeins?: number | string | null;
+  total_yards?: number | null;
+  total_meters?: number | null;
+  total_grams?: number | null;
+  yards_per_skein?: number | null;
+  grams_per_skein?: number | null;
+  prefer_metric_length?: boolean | null;
+  colorway?: string | null;
   yarn_name?: string | null;
   yarn?: { id: number; name: string; yarn_company_name?: string | null } | null;
 }
@@ -167,15 +181,6 @@ export interface ApiShopSearchResponse {
 
 // ---- Personal data (requires the user's own sign-in) ----
 
-export interface ApiStashPack {
-  skeins?: number | string | null;
-  total_yards?: number | null;
-  total_meters?: number | null;
-  total_grams?: number | null;
-  yards_per_skein?: number | null;
-  grams_per_skein?: number | null;
-}
-
 export interface ApiStash {
   id: number;
   name?: string | null;
@@ -189,7 +194,7 @@ export interface ApiStash {
   yarn_weight_name?: string | null;
   personal_yarn_weight?: Named | null;
   yarn?: ApiYarnListItem | null;
-  primary_pack?: ApiStashPack | null;
+  primary_pack?: ApiPack | null;
 }
 
 export interface ApiStashListResponse {
@@ -275,4 +280,17 @@ export interface ApiVolume {
 export interface ApiLibraryResponse {
   volumes: ApiVolume[];
   paginator: ApiPaginator;
+}
+
+export interface ApiStashFull extends ApiStash {
+  notes?: string | null;
+  /** The total pack, the unallocated remainder, and one pack per project using it. */
+  packs?: ApiPack[];
+}
+
+export interface ApiProjectFull extends ApiProject {
+  notes?: string | null;
+  private_notes?: string | null;
+  packs?: ApiPack[];
+  project_status_id?: number | null;
 }
