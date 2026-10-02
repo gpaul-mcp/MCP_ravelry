@@ -5,6 +5,7 @@ import { YARN_WEIGHTS } from '../ravelry/vocabulary.ts';
 import { nonEmpty, truncate } from '../tools/format.ts';
 import type { UserContext } from './context.ts';
 import { loadStash, stashEntrySchema } from './stash.ts';
+import { VIEW_META } from '../view.ts';
 
 const readOnly = { readOnlyHint: true, idempotentHint: true, openWorldHint: true } as const;
 
@@ -51,6 +52,7 @@ export function registerAccountLists(server: McpServer, user: UserContext): void
         yards_by_weight: z.record(z.string(), z.number()),
         total_entries: z.number(),
       }),
+      _meta: VIEW_META,
       annotations: readOnly,
     },
     async ({ weight, search }, ctx) => {

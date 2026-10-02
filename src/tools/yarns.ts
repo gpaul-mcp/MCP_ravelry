@@ -5,6 +5,7 @@ import type { RavelryClient } from '../ravelry/client.ts';
 import type { ApiNeedleSize, ApiYarn, ApiYarnListItem } from '../ravelry/types.ts';
 import { YARN_ATTRIBUTES, YARN_FIBERS, YARN_WEIGHTS } from '../ravelry/vocabulary.ts';
 import { htmlToText, nonEmpty, rounded, truncate, yarnUrl } from './format.ts';
+import { VIEW_META } from '../view.ts';
 
 const MAX_IDS = 20;
 const MAX_NOTES_LENGTH = 2_000;
@@ -115,6 +116,7 @@ export function registerYarnTools(server: McpServer, ravelry: RavelryClient): vo
         'yardage and grams per skein, washability and rating for each match.',
       inputSchema: searchInput,
       outputSchema: searchOutput,
+      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async (input, ctx) => {
@@ -160,6 +162,7 @@ export function registerYarnTools(server: McpServer, ravelry: RavelryClient): vo
           .describe(`Ravelry yarn ids, 1 to ${MAX_IDS} per call.`),
       }),
       outputSchema: detailsOutput,
+      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ ids }, ctx) => {

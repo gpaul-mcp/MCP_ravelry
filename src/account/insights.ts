@@ -8,6 +8,7 @@ import { categoryPath, patternUrl, range, rounded } from '../tools/format.ts';
 import { patternSummarySchema, toPatternSummary } from '../tools/search-patterns.ts';
 import type { UserContext } from './context.ts';
 import { loadStash, patternYardage, type StashEntry, totalsByWeight } from './stash.ts';
+import { VIEW_META } from '../view.ts';
 
 const readOnly = { readOnlyHint: true, idempotentHint: true, openWorldHint: true } as const;
 
@@ -81,6 +82,7 @@ function registerPatternsForStash(server: McpServer, user: UserContext): void {
           .describe('Selected entries without a known weight or yardage; add them on Ravelry.'),
         missing_stash_ids: z.array(z.number()),
       }),
+      _meta: VIEW_META,
       annotations: readOnly,
     },
     async (input, ctx) => {
@@ -175,6 +177,7 @@ function registerPickFromQueue(server: McpServer, user: UserContext): void {
         ),
         queue_size: z.number(),
       }),
+      _meta: VIEW_META,
       annotations: readOnly,
     },
     async ({ limit }, ctx) => {
@@ -281,6 +284,7 @@ function registerCraftingProfile(server: McpServer, user: UserContext): void {
         favorites_count: z.number(),
         summary: z.string(),
       }),
+      _meta: VIEW_META,
       annotations: readOnly,
     },
     async (_input, ctx) => {

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RavelryClient } from '../src/ravelry/client.ts';
 import type { ApiPattern, ApiPatternSearchResponse } from '../src/ravelry/types.ts';
 import { createServer } from '../src/server.ts';
+import { connect, routeFetch } from './helpers.ts';
 
 const searchResponse: ApiPatternSearchResponse = {
   patterns: [
@@ -203,3 +204,35 @@ function requestedUrl(fetchMock: ReturnType<typeof vi.fn<typeof fetch>>, call = 
   if (typeof input !== 'string') throw new Error(`fetch call ${call} did not use a string URL`);
   return new URL(input);
 }
+
+describe('interactive view (MCP Apps)', () => {
+  it('links the main tools to the view and serves it with Ravelry image access', async () => {
+    const { client, close } = await connect(routeFetch({}));
+    try {
+      const { tools } = await client.listTools();
+      const withView = tools.filter(tool => {
+        const ui = tool._meta?.ui as { resourceUri?: string } | undefined;
+        return ui?.resourceUri === 'ui://ravelry/view.html';
+      });
+      expect(withView.map(tool => tool.name).sort()).toEqual([
+        'find_yarn_shops',
+        'find_yarns_for_pattern',
+        'get_pattern_details',
+        'get_yarn_details',
+        'match_yarns',
+        'search_patterns',
+        'search_yarns',
+      ]);
+
+      const resource = await client.readResource({ uri: 'ui://ravelry/view.html' });
+      const [content] = resource.contents;
+      expect(content?.mimeType).toBe('text/html;profile=mcp-app');
+      expect(content && 'text' in content ? content.text : '').toContain('<html');
+      expect(content?._meta).toMatchObject({
+        ui: { csp: { resourceDomains: ['https://*.ravelrycache.com'] } },
+      });
+    } finally {
+      await close();
+    }
+  });
+});

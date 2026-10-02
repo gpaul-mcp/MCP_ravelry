@@ -7,6 +7,7 @@ import { YARN_WEIGHTS } from '../ravelry/vocabulary.ts';
 import { patternUrl } from '../tools/format.ts';
 import type { UserContext } from './context.ts';
 import { loadStash } from './stash.ts';
+import { VIEW_META } from '../view.ts';
 
 /** Ravelry's yarn weight ids (from /yarn_weights.json), for yarns not in its database. */
 const WEIGHT_IDS: Record<(typeof YARN_WEIGHTS)[number], number> = {
@@ -113,6 +114,7 @@ export function registerAccountWrites(server: McpServer, user: UserContext): voi
         ),
         failed: z.array(z.object({ index: z.number(), error: z.string() })),
       }),
+      _meta: VIEW_META,
       annotations: additive,
       scopeChallenge: requireScopes(ACCOUNT_SCOPE, WRITE_SCOPE),
     },
@@ -195,6 +197,7 @@ export function registerAccountWrites(server: McpServer, user: UserContext): voi
         skipped_already_queued: z.array(z.object({ pattern_id: z.number() })),
         failed: z.array(z.object({ pattern_id: z.number(), error: z.string() })),
       }),
+      _meta: VIEW_META,
       annotations: additive,
       scopeChallenge: requireScopes(ACCOUNT_SCOPE, WRITE_SCOPE),
     },

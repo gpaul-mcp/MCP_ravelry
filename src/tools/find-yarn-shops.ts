@@ -3,6 +3,7 @@ import * as z from 'zod';
 
 import type { RavelryClient } from '../ravelry/client.ts';
 import { nonEmpty, shopUrl } from './format.ts';
+import { VIEW_META } from '../view.ts';
 
 const inputSchema = z
   .object({
@@ -67,6 +68,7 @@ export function registerFindYarnShops(server: McpServer, ravelry: RavelryClient)
         'or "in <city>", prefer coordinates: use the coordinates of the place the user names.',
       inputSchema,
       outputSchema,
+      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async (input, ctx) => {

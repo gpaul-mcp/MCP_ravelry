@@ -86,6 +86,7 @@ What the server stores: your Ravelry username and its Ravelry sign-in tokens, en
 | `search_yarns`           | Search by name plus `weight`, `fiber` (merino, alpaca, cotton...) and `attributes` (superwash, hand-dyed, self-striping...), sorted by best match, rating or popularity. Discontinued yarns are hidden unless asked. |
 | `get_yarn_details`       | For 1–20 yarns: fiber content, yards and grams per skein, recommended needles and hooks, gauge, care, texture, color/dye attributes, where it was made, and notes.                                                   |
 | `find_yarns_for_pattern` | Yarn substitution: the yarns other Ravelry users actually used for a pattern, ranked by how many projects used each, next to the weight, yardage and gauge the pattern calls for and the designer's suggested yarns. |
+| `match_yarns`            | Matches what was read from a ball band, receipt or invoice (brand, name, weight, fiber, yards/grams per skein) to Ravelry yarns, with a confidence level, the reasons and alternatives.                              |
 
 ### Shops
 
@@ -105,10 +106,18 @@ What the server stores: your Ravelry username and its Ravelry sign-in tokens, en
 | `search_my_library`          | Patterns, books and magazines in your Ravelry library.                                                                                                                                   |
 | `find_patterns_for_my_stash` | Patterns that fit yarn you own: same weight, using 40–100 % of the yardage.                                                                                                              |
 | `pick_from_my_queue`         | Ranks your queue by what your stash already covers: planned yarn on hand, enough yarn of the right weight, or how many yards you're short.                                               |
+| `add_to_my_stash`            | Adds yarn to your stash (e.g. from a receipt photo) with colorway, dye lot, skeins, length, weight, price, shop and purchase date. Skips yarn already stashed.                           |
+| `add_to_my_queue`            | Queues patterns, optionally with the yarn you plan to use and a note. Skips patterns already queued.                                                                                     |
 
-Plus two extra starters: **What should I make next?** and **Use up my stash**.
+Plus three extra starters: **What should I make next?**, **Use up my stash** and **Add yarn to my stash from a photo**.
 
-Every tool is read-only (`readOnlyHint`), validates its input against the values Ravelry accepts, and returns typed `structuredContent` described by an `outputSchema`.
+Adding needs one extra permission ("add yarn to your stash and patterns to your queue"), asked on the same consent page. Nothing is ever edited or deleted, and your assistant asks you before each addition.
+
+### Cards in the chat
+
+In apps that support [MCP Apps](https://modelcontextprotocol.io/extensions/apps) (Claude, ChatGPT, VS Code…), results show up as interactive cards: pattern and yarn photos, your stash by yarn weight, a "what can I start" view of your queue, receipt matches with confidence badges, and shop cards with map links. Buttons on the cards open Ravelry, show details, or ask your assistant for yarn ideas or to queue a pattern. Other apps get the same results as text.
+
+Every tool except the two `add_to_my_*` ones is read-only (`readOnlyHint`). All of them validate their input against the values Ravelry accepts and return typed `structuredContent` described by an `outputSchema`.
 
 Example prompts:
 

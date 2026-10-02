@@ -12,6 +12,7 @@ import { registerGetPatternDetails } from './tools/get-pattern-details.ts';
 import { registerMatchYarns } from './tools/match-yarns.ts';
 import { registerSearchPatterns } from './tools/search-patterns.ts';
 import { registerYarnTools } from './tools/yarns.ts';
+import { registerView } from './view.ts';
 
 export const SERVER_NAME = 'ravelry';
 export const SERVER_VERSION = '2.2.0';
@@ -49,6 +50,7 @@ export function createServer(ravelry: RavelryClient, user?: UserContext): McpSer
   registerMatchYarns(server, ravelry);
   registerFindYarnShops(server, ravelry);
   registerPrompts(server);
+  registerView(server);
 
   if (user) {
     registerAccountLists(server, user);
