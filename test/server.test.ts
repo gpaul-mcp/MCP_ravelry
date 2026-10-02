@@ -40,7 +40,7 @@ const detailedPattern: ApiPattern = {
   yarn_weight_description: 'Worsted (9 wpi)',
   yardage: 180,
   yardage_max: 220,
-  pattern_needle_sizes: [{ name: 'US 7 - 4.5 mm' }],
+  pattern_needle_sizes: [{ name: 'US 7 - 4.5 mm', metric: 4.5 }],
   languages: [{ name: 'English' }],
   notes: 'x'.repeat(5_000),
 };

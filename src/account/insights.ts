@@ -1,12 +1,11 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod';
 
-import type { RavelryClient } from '../ravelry/client.ts';
-import type { ApiPattern } from '../ravelry/types.ts';
 import { resolveCategory, weightPermalink } from '../ravelry/vocabulary.ts';
 import { categoryPath, patternUrl, range, rounded } from '../tools/format.ts';
 import { patternSummarySchema, toPatternSummary } from '../tools/search-patterns.ts';
 import type { UserContext } from './context.ts';
+import { count, getPatternsInBatches } from './data.ts';
 import { loadStash, patternYardage, type StashEntry, totalsByWeight } from './stash.ts';
 import { VIEW_META } from '../view.ts';
 
@@ -360,23 +359,11 @@ function registerCraftingProfile(server: McpServer, user: UserContext): void {
   );
 }
 
-async function getPatternsInBatches(
-  ravelry: RavelryClient,
-  ids: readonly number[],
-  signal: AbortSignal,
-): Promise<ApiPattern[]> {
-  const batches: number[][] = [];
-  for (let i = 0; i < ids.length; i += 20) batches.push(ids.slice(i, i + 20));
-  return (await Promise.all(batches.map(batch => ravelry.getPatterns(batch, signal)))).flat();
-}
-
-function count(values: readonly (string | null | undefined)[]): { name: string; count: number }[] {
-  const counts = new Map<string, number>();
-  for (const value of values) if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
-  return [...counts].map(([name, n]) => ({ name, count: n })).sort((a, b) => b.count - a.count);
-}
-
-function estimateLevel(finished: number, average: number | null, hardest: number | null): string {
+export function estimateLevel(
+  finished: number,
+  average: number | null,
+  hardest: number | null,
+): string {
   if (finished >= 30 && (hardest ?? 0) >= 6) return 'experienced';
   if (finished >= 10 && (average ?? 0) >= 3) return 'intermediate';
   if (finished >= 3) return 'advanced beginner';

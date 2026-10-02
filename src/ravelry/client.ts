@@ -1,5 +1,6 @@
 import type {
   ApiFavoritesResponse,
+  ApiNeedleRecord,
   ApiLibraryResponse,
   ApiPattern,
   ApiPatternCategoryNode,
@@ -179,6 +180,16 @@ export class RavelryClient {
       params,
       signal,
     );
+  }
+
+  /** The needles and hooks the user owns. */
+  async listNeedles(username: string, signal?: AbortSignal): Promise<ApiNeedleRecord[]> {
+    const response = await this.#request<{ needle_records: ApiNeedleRecord[] }>(
+      `/people/${user(username)}/needles/list.json`,
+      {},
+      signal,
+    );
+    return response.needle_records;
   }
 
   searchLibrary(username: string, params: SearchParams, signal?: AbortSignal) {

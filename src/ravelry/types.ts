@@ -39,6 +39,7 @@ interface Named {
 }
 
 export interface ApiPatternCategory extends Named {
+  permalink?: string;
   parent?: ApiPatternCategory | null;
 }
 
@@ -75,7 +76,7 @@ export interface ApiPattern {
   has_us_terminology?: boolean | null;
   pattern_attributes?: { id: number; permalink: string }[];
   sizes_available?: string | null;
-  pattern_needle_sizes?: Named[];
+  pattern_needle_sizes?: (Named & { metric: number; hook?: string | null })[];
   packs?: ApiPack[];
   languages?: Named[];
   downloadable?: boolean;
@@ -216,6 +217,7 @@ export interface ApiStash {
   location?: string | null;
   handspun?: boolean | null;
   tag_names?: string[];
+  created_at?: string | null;
   stash_status?: { name?: string | null } | string | null;
   yarn_weight_name?: string | null;
   personal_yarn_weight?: Named | null;
@@ -239,6 +241,7 @@ export interface ApiQueuedProject {
   skeins?: number | null;
   notes?: string | null;
   position_in_queue?: number | null;
+  created_at?: string | null;
 }
 
 export interface ApiQueueResponse {
@@ -260,6 +263,9 @@ export interface ApiProject {
   rating?: number | null;
   size?: string | null;
   made_for?: string | null;
+  /** Target date the maker set. */
+  finish_by?: string | null;
+  created_at?: string | null;
   tag_names?: string[];
   links?: { self?: { href?: string } } | null;
   first_photo?: ApiPhoto | null;
@@ -268,6 +274,20 @@ export interface ApiProject {
 export interface ApiProjectsResponse {
   projects: ApiProject[];
   paginator: ApiPaginator;
+}
+
+export interface ApiNeedleRecord {
+  id: number;
+  comment?: string | null;
+  needle_type?: {
+    id: number;
+    /** Inches. */
+    length?: number | null;
+    description?: string | null;
+    name?: string | null;
+    metric_name?: string | null;
+    type_name?: string | null;
+  } | null;
 }
 
 export interface ApiFavorite {
