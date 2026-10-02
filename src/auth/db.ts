@@ -43,6 +43,15 @@ export function openDatabase(path: string): DatabaseSync {
       expires_at  INTEGER NOT NULL
     );
 
+    -- Row counters per Ravelry user and project. Owner is a hash, data encrypted.
+    CREATE TABLE IF NOT EXISTS row_counters (
+      owner       TEXT NOT NULL,
+      project_id  INTEGER NOT NULL,
+      data        TEXT NOT NULL,
+      updated_at  INTEGER NOT NULL,
+      PRIMARY KEY (owner, project_id)
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL

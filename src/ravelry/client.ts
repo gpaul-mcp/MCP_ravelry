@@ -382,7 +382,7 @@ function describeHttpError(status: number, perUser: boolean): string {
         'from https://www.ravelry.com/pro/developer in RAVELRY_USERNAME / RAVELRY_PASSWORD.'
       );
     case 404:
-      return 'Ravelry returned 404 Not Found: no pattern matches that request.';
+      return 'Ravelry returned 404 Not Found: nothing exists with that id or name.';
     case 429:
       return 'Ravelry is rate limiting requests. Wait a little before trying again.';
     default:

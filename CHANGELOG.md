@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.5.0
+
+### Added
+
+- Row counters: `get_row_counter` shows an interactive card (+ / − buttons, several named counters per project, target, position in the pattern repeat, "save to Ravelry log"); `update_row_counter` changes them from the chat. Stored encrypted in the sign-in database (`row_counters` table, created automatically), never on Ravelry.
+
+### Changed
+
+- A Ravelry 404 no longer claims a pattern was missing when it was a project or yarn.
+
 ## 2.4.0
 
 ### Added
