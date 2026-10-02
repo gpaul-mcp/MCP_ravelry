@@ -81,6 +81,21 @@ describe('serveHttp', () => {
     expect(await response.json()).toEqual({ status: 'ok' });
   });
 
+  it('shows a landing page with the connector URL', async () => {
+    const base = await start();
+    const response = await fetch(`${base}/`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/html');
+    expect(await response.text()).toContain(`${base}/mcp`);
+  });
+
+  it('does not reveal the URL secret on the landing page', async () => {
+    const base = await start({ urlSecret: SECRET });
+    const page = await (await fetch(`${base}/`)).text();
+    expect(page).not.toContain(SECRET);
+    expect(page).toContain('private instance');
+  });
+
   it('serves MCP on /mcp and 404s elsewhere', async () => {
     const base = await start();
     expect((await initialize(base, '/mcp')).status).toBe(200);

@@ -8,6 +8,50 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI 
 
 This project was inspired by my girlfriend, whose passion for knitting and crochet encouraged me to create this bridge between AI assistants and the Ravelry crafting community. Since she's not very tech-savvy and somewhat skeptical about AI, this serves as my way of connecting with her interests and showing how technology can enhance her crafting experience rather than replace it.
 
+## Use it now: no installation
+
+A hosted instance is running at:
+
+```
+https://ravelry-mcp.gonz-paul.dev/mcp
+```
+
+You don't need a Ravelry account or API key: add the URL to your AI assistant and start asking.
+
+**Claude** (web, desktop and mobile): **Settings → Connectors → Add custom connector**, give it a name ("Ravelry") and paste the URL. Once added, it is available everywhere you use Claude.
+
+**ChatGPT**: add the URL as a custom MCP connector (developer mode), with no authentication.
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http ravelry https://ravelry-mcp.gonz-paul.dev/mcp
+```
+
+**VS Code** (`.vscode/mcp.json`)
+
+```json
+{
+  "servers": {
+    "ravelry": { "type": "http", "url": "https://ravelry-mcp.gonz-paul.dev/mcp" }
+  }
+}
+```
+
+**Cursor** (`~/.cursor/mcp.json`)
+
+```json
+{
+  "mcpServers": {
+    "ravelry": { "url": "https://ravelry-mcp.gonz-paul.dev/mcp" }
+  }
+}
+```
+
+Then try one of the [example prompts](#tools), or the built-in starters: **Find a pattern**, **Substitute a yarn**, **What can I make with this yarn?** and **Yarn shops near me**.
+
+> The hosted server only reads public Ravelry data with this project's read-only API key (with Ravelry's permission), stores nothing about your conversations, and allows 60 requests per minute per user. Prefer to run your own? See [Run it yourself](#run-it-yourself).
+
 ## Tools
 
 ### Patterns
@@ -41,19 +85,19 @@ Example prompts:
 - "Compare three well-rated superwash merino DK yarns."
 - "Are there yarn shops within 5 km of the Louvre?"
 
-## Get Ravelry API credentials
+## Run it yourself
+
+Only needed if you don't want to use the [hosted instance](#use-it-now-no-installation). Requires Node.js 22 or later and your own Ravelry API key.
+
+### Get Ravelry API credentials
 
 The server uses Ravelry's **read-only basic-auth API keys**, not your Ravelry login:
 
-1. Sign in at <https://www.ravelry.com/pro/developer>.
+1. Sign in at <https://www.ravelry.com/pro/developer> (a free Pro account is created if you don't have one).
 2. Create an app and choose **basic auth** with read-only access.
 3. Copy the generated **username** and **password**.
 
-## Install
-
-Requires Node.js 22 or later.
-
-### Claude Desktop: one-click bundle (recommended)
+### Claude Desktop: one-click bundle
 
 ```bash
 npm install
@@ -139,13 +183,9 @@ All configuration comes from environment variables. For local development you ca
 
 ### HTTP mode and hosting
 
-`MCP_TRANSPORT=http npm start` serves Streamable HTTP at `http://127.0.0.1:3000/mcp`, plus `GET /health`. `Host` and `Origin` headers must be localhost or one of `MCP_ALLOWED_HOSTS` (protection against DNS rebinding).
+`MCP_TRANSPORT=http npm start` serves Streamable HTTP at `http://127.0.0.1:3000/mcp`, plus `GET /health` and a short landing page at `/` that shows the connector URL. `Host` and `Origin` headers must be localhost or one of `MCP_ALLOWED_HOSTS` (protection against DNS rebinding).
 
-To share the server so people can add it to Claude or ChatGPT by URL, follow **[Self-hosting with Cloudflare Tunnel](docs/self-hosting.md)**: a Docker Compose setup that runs it on your own machine for free.
-
-### Prompts
-
-The server also provides conversation starters, which clients show as prompts or slash commands: **Find a pattern**, **Substitute a yarn**, **What can I make with this yarn?** and **Yarn shops near me**.
+To host your own instance that people add to Claude or ChatGPT by URL (like the hosted one above), follow **[Self-hosting with Cloudflare Tunnel](docs/self-hosting.md)**: a Docker Compose setup that runs it on your own machine for free.
 
 ## Development
 
@@ -174,7 +214,7 @@ src/
 ├── index.ts                    # Entry point: config, transport (stdio or HTTP), shutdown
 ├── server.ts                   # createServer() factory: server info, instructions, tools
 ├── config.ts                   # Environment variable parsing and validation (zod)
-├── http.ts                     # Streamable HTTP transport: host checks, URL secret, rate limit, /health
+├── http.ts                     # Streamable HTTP: host checks, URL secret, rate limit, /health, landing page
 ├── rate-limit.ts               # Per-client request limiter
 ├── prompts.ts                  # Conversation starters (MCP prompts)
 ├── ravelry/

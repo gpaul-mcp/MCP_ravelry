@@ -49,6 +49,13 @@ export async function serveHttp(
       res.writeHead(200, { 'Content-Type': 'application/json' }).end('{"status":"ok"}');
       return;
     }
+    if (pathname === '/' && req.method === 'GET') {
+      const url = options.urlSecret
+        ? undefined
+        : `${publicOrigin(req, options.trustProxy ?? false)}${endpoint}`;
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(landingPage(url));
+      return;
+    }
     if (!pathMatches(pathname, endpoint)) {
       res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found.');
       return;
@@ -98,6 +105,42 @@ function pathMatches(pathname: string, endpoint: string): boolean {
   const actual = Buffer.from(pathname.replace(/\/+$/, ''));
   const expected = Buffer.from(endpoint);
   return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+function publicOrigin(req: IncomingMessage, trustProxy: boolean): string {
+  const forwarded = trustProxy ? req.headers['x-forwarded-proto'] : undefined;
+  const proto = typeof forwarded === 'string' && forwarded === 'https' ? 'https' : 'http';
+  return `${proto}://${req.headers.host ?? 'localhost'}`;
+}
+
+const escapeHtml = (text: string) => text.replace(/[&<>"']/g, char => `&#${char.charCodeAt(0)};`);
+
+/** What a person sees when opening the server in a browser. */
+function landingPage(mcpUrl: string | undefined): string {
+  const connect = mcpUrl
+    ? `<p>Add this URL as a custom connector in Claude (Settings → Connectors) or any MCP client:</p>
+<pre>${escapeHtml(mcpUrl)}</pre>`
+    : '<p>This is a private instance. Ask its owner for the connector URL.</p>';
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ravelry MCP server</title>
+<style>
+body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; color: #222; background: #fff; }
+pre { background: #f4f4f4; padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; }
+@media (prefers-color-scheme: dark) { body { color: #eee; background: #161616; } pre { background: #262626; } a { color: #8ab4ff; } }
+</style>
+</head>
+<body>
+<h1>Ravelry MCP server</h1>
+<p>Lets AI assistants search Ravelry patterns, find yarns and yarn substitutes, and look up local yarn shops.</p>
+${connect}
+<p><a href="https://github.com/gpaul-mcp/MCP_ravelry">Documentation and source code</a></p>
+</body>
+</html>
+`;
 }
 
 function clientKey(req: IncomingMessage, trustProxy: boolean): string {
