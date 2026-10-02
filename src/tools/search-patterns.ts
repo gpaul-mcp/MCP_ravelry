@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod';
 
 import type { RavelryClient } from '../ravelry/client.ts';
+import type { ApiPatternListItem } from '../ravelry/types.ts';
 import {
   LANGUAGE_CODES,
   PATTERN_FITS,
@@ -94,17 +95,30 @@ const inputSchema = z
     { message: 'yardage_min must not be greater than yardage_max', path: ['yardage_min'] },
   );
 
+export const patternSummarySchema = z.object({
+  id: z.number().describe('Pass to get_pattern_details for full information.'),
+  name: z.string(),
+  url: z.string(),
+  free: z.boolean(),
+  designer: z.string().nullable(),
+  photo_url: z.string().nullable(),
+});
+
+export function toPatternSummary(
+  pattern: ApiPatternListItem,
+): z.infer<typeof patternSummarySchema> {
+  return {
+    id: pattern.id,
+    name: pattern.name,
+    url: patternUrl(pattern.permalink),
+    free: pattern.free,
+    designer: (pattern.designer ?? pattern.pattern_author)?.name ?? null,
+    photo_url: pattern.first_photo?.medium_url ?? pattern.first_photo?.small_url ?? null,
+  };
+}
+
 const outputSchema = z.object({
-  patterns: z.array(
-    z.object({
-      id: z.number().describe('Pass to get_pattern_details for full information.'),
-      name: z.string(),
-      url: z.string(),
-      free: z.boolean(),
-      designer: z.string().nullable(),
-      photo_url: z.string().nullable(),
-    }),
-  ),
+  patterns: z.array(patternSummarySchema),
   category: z.string().nullable().describe('The Ravelry category the search was filtered to.'),
   page: z.number(),
   page_count: z.number(),
@@ -152,14 +166,7 @@ export function registerSearchPatterns(server: McpServer, ravelry: RavelryClient
       );
 
       const output: SearchOutput = {
-        patterns: response.patterns.map(pattern => ({
-          id: pattern.id,
-          name: pattern.name,
-          url: patternUrl(pattern.permalink),
-          free: pattern.free,
-          designer: (pattern.designer ?? pattern.pattern_author)?.name ?? null,
-          photo_url: pattern.first_photo?.medium_url ?? pattern.first_photo?.small_url ?? null,
-        })),
+        patterns: response.patterns.map(toPatternSummary),
         category: category ?? null,
         page: response.paginator.page,
         page_count: response.paginator.page_count,

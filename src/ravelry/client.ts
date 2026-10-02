@@ -1,9 +1,14 @@
 import type {
+  ApiFavoritesResponse,
+  ApiLibraryResponse,
   ApiPattern,
   ApiPatternCategoryNode,
   ApiPatternSearchResponse,
   ApiPatternsResponse,
+  ApiProjectsResponse,
+  ApiQueueResponse,
   ApiShopSearchResponse,
+  ApiStashListResponse,
   ApiYarn,
   ApiYarnSearchResponse,
   ApiYarnsResponse,
@@ -12,8 +17,11 @@ import type {
 const DEFAULT_BASE_URL = 'https://api.ravelry.com';
 
 export interface RavelryClientOptions {
-  username: string;
-  password: string;
+  /** App credentials (the read-only basic auth key). */
+  username?: string;
+  password?: string;
+  /** Per-user credentials instead: returns the `Authorization` header to send. */
+  authorization?: () => Promise<string>;
   /** Per-request timeout in milliseconds. */
   timeoutMs?: number;
   baseUrl?: string;
@@ -46,7 +54,8 @@ export class RavelryApiError extends Error {
 }
 
 export class RavelryClient {
-  readonly #authorization: string;
+  readonly #authorization: () => Promise<string>;
+  readonly #perUser: boolean;
   readonly #timeoutMs: number;
   readonly #baseUrl: string;
   readonly #userAgent: string;
@@ -54,7 +63,15 @@ export class RavelryClient {
   #categories: { value: ApiPatternCategoryNode; expires: number } | undefined;
 
   constructor(options: RavelryClientOptions) {
-    this.#authorization = `Basic ${Buffer.from(`${options.username}:${options.password}`).toString('base64')}`;
+    if (options.authorization) {
+      this.#authorization = options.authorization;
+      this.#perUser = true;
+    } else {
+      const credentials = `${options.username ?? ''}:${options.password ?? ''}`;
+      const basic = `Basic ${Buffer.from(credentials).toString('base64')}`;
+      this.#authorization = () => Promise.resolve(basic);
+      this.#perUser = false;
+    }
     this.#timeoutMs = options.timeoutMs ?? 15_000;
     this.#baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
     this.#userAgent = options.userAgent ?? 'ravelry-mcp';
@@ -97,6 +114,40 @@ export class RavelryClient {
     return response.pattern_categories;
   }
 
+  // ---- Personal data: only works with a per-user `authorization`. ----
+
+  listStash(username: string, params: SearchParams, signal?: AbortSignal) {
+    return this.#get<ApiStashListResponse>(
+      `/people/${user(username)}/stash/list.json`,
+      params,
+      signal,
+    );
+  }
+
+  listQueue(username: string, params: SearchParams, signal?: AbortSignal) {
+    return this.#get<ApiQueueResponse>(`/people/${user(username)}/queue/list.json`, params, signal);
+  }
+
+  listProjects(username: string, params: SearchParams, signal?: AbortSignal) {
+    return this.#get<ApiProjectsResponse>(`/projects/${user(username)}/list.json`, params, signal);
+  }
+
+  listFavorites(username: string, params: SearchParams, signal?: AbortSignal) {
+    return this.#get<ApiFavoritesResponse>(
+      `/people/${user(username)}/favorites/list.json`,
+      params,
+      signal,
+    );
+  }
+
+  searchLibrary(username: string, params: SearchParams, signal?: AbortSignal) {
+    return this.#get<ApiLibraryResponse>(
+      `/people/${user(username)}/library/search.json`,
+      params,
+      signal,
+    );
+  }
+
   async #get<T>(path: string, params: SearchParams, signal?: AbortSignal): Promise<T> {
     const search = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
@@ -110,6 +161,7 @@ export class RavelryClient {
     }
     const query = search.size > 0 ? `?${search.toString()}` : '';
 
+    const authorization = await this.#authorization();
     const timeout = AbortSignal.timeout(this.#timeoutMs);
     const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
 
@@ -118,7 +170,7 @@ export class RavelryClient {
       response = await this.#fetch(`${this.#baseUrl}${path}${query}`, {
         headers: {
           Accept: 'application/json',
-          Authorization: this.#authorization,
+          Authorization: authorization,
           'User-Agent': this.#userAgent,
         },
         signal: combined,
@@ -136,14 +188,22 @@ export class RavelryClient {
     }
 
     if (!response.ok) {
-      throw new RavelryApiError(describeHttpError(response.status), response.status);
+      throw new RavelryApiError(describeHttpError(response.status, this.#perUser), response.status);
     }
 
     return (await response.json()) as T;
   }
 }
 
-function describeHttpError(status: number): string {
+const user = (username: string) => encodeURIComponent(username);
+
+function describeHttpError(status: number, perUser: boolean): string {
+  if (perUser && (status === 401 || status === 403)) {
+    return (
+      'Ravelry refused access with your sign-in. Disconnect and reconnect the Ravelry ' +
+      'connector to sign in again.'
+    );
+  }
   switch (status) {
     case 401:
     case 403:

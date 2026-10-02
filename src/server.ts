@@ -1,6 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/server';
 
-import { registerPrompts } from './prompts.ts';
+import type { UserContext } from './account/context.ts';
+import { registerAccountInsights } from './account/insights.ts';
+import { registerAccountLists } from './account/lists.ts';
+import { registerAccountPrompts, registerPrompts } from './prompts.ts';
 import type { RavelryClient } from './ravelry/client.ts';
 import { registerFindYarnShops } from './tools/find-yarn-shops.ts';
 import { registerFindYarnsForPattern } from './tools/find-yarns-for-pattern.ts';
@@ -9,7 +12,7 @@ import { registerSearchPatterns } from './tools/search-patterns.ts';
 import { registerYarnTools } from './tools/yarns.ts';
 
 export const SERVER_NAME = 'ravelry';
-export const SERVER_VERSION = '2.1.0';
+export const SERVER_VERSION = '2.2.0';
 
 const INSTRUCTIONS = `Tools for knitters and crocheters, backed by Ravelry.
 - Patterns: search_patterns (defaults to free patterns; pass availability "any" to include paid ones), then get_pattern_details with up to 20 ids for yarn, gauge, needles, sizes and notes. For "what can I make with this yarn", combine weight and yardage_max.
@@ -18,11 +21,21 @@ const INSTRUCTIONS = `Tools for knitters and crocheters, backed by Ravelry.
 - Shops: find_yarn_shops, using coordinates of the place the user names.
 Always give the user the Ravelry url of every pattern, yarn or shop you mention.`;
 
-/** Builds a fresh server instance. Transports call this once per connection or request. */
-export function createServer(ravelry: RavelryClient): McpServer {
+const ACCOUNT_INSTRUCTIONS = `
+The user is signed in to Ravelry, so you can also read their own data:
+- get_my_crafting_profile first when you need to know them (level, crafts, what they make, yarn they own). Its summary is worth remembering if they want you to.
+- get_my_stash, get_my_queue, get_my_projects, get_my_favorites, search_my_library for the raw lists.
+- find_patterns_for_my_stash to suggest patterns for yarn they own; pick_from_my_queue to see which queued patterns their stash already covers.
+Suggest patterns at or slightly above their level, and avoid recommending what they already made.`;
+
+/**
+ * Builds a fresh server instance. Transports call this once per connection or
+ * request. With a signed-in `user`, the personal tools are added.
+ */
+export function createServer(ravelry: RavelryClient, user?: UserContext): McpServer {
   const server = new McpServer(
     { name: SERVER_NAME, title: 'Ravelry', version: SERVER_VERSION },
-    { instructions: INSTRUCTIONS },
+    { instructions: user ? INSTRUCTIONS + ACCOUNT_INSTRUCTIONS : INSTRUCTIONS },
   );
 
   registerSearchPatterns(server, ravelry);
@@ -31,6 +44,12 @@ export function createServer(ravelry: RavelryClient): McpServer {
   registerFindYarnsForPattern(server, ravelry);
   registerFindYarnShops(server, ravelry);
   registerPrompts(server);
+
+  if (user) {
+    registerAccountLists(server, user);
+    registerAccountInsights(server, user);
+    registerAccountPrompts(server);
+  }
 
   return server;
 }

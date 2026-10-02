@@ -52,6 +52,24 @@ Then try one of the [example prompts](#tools), or the built-in starters: **Find 
 
 > The hosted server only reads public Ravelry data with this project's read-only API key (with Ravelry's permission), stores nothing about your conversations, and allows 60 requests per minute per user. Prefer to run your own? See [Run it yourself](#run-it-yourself).
 
+### With your own Ravelry account
+
+To also let your assistant read **your** stash, queue, projects, favorites and library, add this URL instead:
+
+```
+https://ravelry-mcp.gonz-paul.dev/account/mcp
+```
+
+The first time, your assistant opens a page where you sign in with Ravelry, then confirm on a second page which app gets access. Access is **read-only**: nothing can be changed on Ravelry. You can revoke it at any time from your Ravelry account's app settings.
+
+Then you can ask things like:
+
+- "What should I make next?" (it checks which queued patterns your stash already covers)
+- "What can I make with the DK yarn in my stash?"
+- "Look at my projects and tell me what kind of maker I am." (a crafting profile your assistant can remember)
+
+What the server stores: your Ravelry username and its Ravelry sign-in tokens, encrypted, so it can keep your connection working. Nothing else about you or your conversations.
+
 ## Tools
 
 ### Patterns
@@ -74,6 +92,21 @@ Then try one of the [example prompts](#tools), or the built-in starters: **Find 
 | Tool              | What it does                                                                                                                               |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `find_yarn_shops` | Local yarn shops around a point (latitude/longitude + radius, nearest first) or by name or city: address, distance, website, phone, email. |
+
+### Your account (at `/account/mcp`, after signing in)
+
+| Tool                         | What it does                                                                                                                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_my_crafting_profile`    | Who you are as a maker: crafts, what you make most, yarn weights you use, difficulty you handle (with an estimated level), stash and queue size, plus a short summary worth remembering. |
+| `get_my_stash`               | Your yarn with weight, colorway, skeins and total yards, and yards available per weight.                                                                                                 |
+| `get_my_queue`               | Your queued patterns with the yarn you planned for each.                                                                                                                                 |
+| `get_my_projects`            | Your projects: pattern, craft, status, progress, dates, your rating.                                                                                                                     |
+| `get_my_favorites`           | Your favorited patterns, yarns, designers…                                                                                                                                               |
+| `search_my_library`          | Patterns, books and magazines in your Ravelry library.                                                                                                                                   |
+| `find_patterns_for_my_stash` | Patterns that fit yarn you own: same weight, using 40–100 % of the yardage.                                                                                                              |
+| `pick_from_my_queue`         | Ranks your queue by what your stash already covers: planned yarn on hand, enough yarn of the right weight, or how many yards you're short.                                               |
+
+Plus two extra starters: **What should I make next?** and **Use up my stash**.
 
 Every tool is read-only (`readOnlyHint`), validates its input against the values Ravelry accepts, and returns typed `structuredContent` described by an `outputSchema`.
 
@@ -168,24 +201,39 @@ claude mcp add ravelry -e RAVELRY_USERNAME=your-api-username -e RAVELRY_PASSWORD
 
 All configuration comes from environment variables. For local development you can put them in a `.env` file (see [`.env.example`](.env.example)); it is git-ignored.
 
-| Variable                | Default     | Description                                                              |
-| ----------------------- | ----------- | ------------------------------------------------------------------------ |
-| `RAVELRY_USERNAME`      | (required)  | Read-only API username (`AUTH_USER` is still accepted).                  |
-| `RAVELRY_PASSWORD`      | (required)  | Read-only API password (`AUTH_PASS` is still accepted).                  |
-| `MCP_TRANSPORT`         | `stdio`     | `stdio`, or `http` to serve Streamable HTTP at `/mcp`.                   |
-| `HOST`                  | `127.0.0.1` | HTTP mode bind address.                                                  |
-| `PORT`                  | `3000`      | HTTP mode port.                                                          |
-| `RAVELRY_TIMEOUT_MS`    | `15000`     | Timeout for each Ravelry API request.                                    |
-| `MCP_ALLOWED_HOSTS`     | (none)      | HTTP mode: public hostnames accepted besides localhost, comma-separated. |
-| `MCP_URL_SECRET`        | (none)      | HTTP mode: serve at `/mcp/<secret>` instead of `/mcp` (16+ characters).  |
-| `RATE_LIMIT_PER_MINUTE` | `60`        | HTTP mode: requests per client per minute; `0` disables.                 |
-| `TRUST_PROXY`           | `false`     | HTTP mode: identify clients by `CF-Connecting-IP` / `X-Forwarded-For`.   |
+| Variable                                                  | Default     | Description                                                                                                                             |
+| --------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `RAVELRY_USERNAME`                                        | (required)  | Read-only API username (`AUTH_USER` is still accepted).                                                                                 |
+| `RAVELRY_PASSWORD`                                        | (required)  | Read-only API password (`AUTH_PASS` is still accepted).                                                                                 |
+| `MCP_TRANSPORT`                                           | `stdio`     | `stdio`, or `http` to serve Streamable HTTP at `/mcp`.                                                                                  |
+| `HOST`                                                    | `127.0.0.1` | HTTP mode bind address.                                                                                                                 |
+| `PORT`                                                    | `3000`      | HTTP mode port.                                                                                                                         |
+| `RAVELRY_TIMEOUT_MS`                                      | `15000`     | Timeout for each Ravelry API request.                                                                                                   |
+| `MCP_ALLOWED_HOSTS`                                       | (none)      | HTTP mode: public hostnames accepted besides localhost, comma-separated.                                                                |
+| `MCP_URL_SECRET`                                          | (none)      | HTTP mode: serve at `/mcp/<secret>` instead of `/mcp` (16+ characters).                                                                 |
+| `RATE_LIMIT_PER_MINUTE`                                   | `60`        | HTTP mode: requests per client per minute; `0` disables.                                                                                |
+| `TRUST_PROXY`                                             | `false`     | HTTP mode: identify clients by `CF-Connecting-IP` / `X-Forwarded-For`.                                                                  |
+| `RAVELRY_OAUTH_CLIENT_ID` / `RAVELRY_OAUTH_CLIENT_SECRET` | (none)      | Enables "Sign in with Ravelry" and `/account/mcp`. A Ravelry OAuth 2.0 app whose redirect URL is `<PUBLIC_URL>/oauth/ravelry/callback`. |
+| `PUBLIC_URL`                                              | (none)      | With sign-in: the public origin, e.g. `https://ravelry.example.com`.                                                                    |
+| `AUTH_SECRET`                                             | (none)      | With sign-in: 32+ random characters; encrypts stored tokens and signs cookies.                                                          |
+| `DATA_DIR`                                                | `./data`    | With sign-in: where the SQLite sign-in database is kept.                                                                                |
 
 ### HTTP mode and hosting
 
 `MCP_TRANSPORT=http npm start` serves Streamable HTTP at `http://127.0.0.1:3000/mcp`, plus `GET /health` and a short landing page at `/` that shows the connector URL. `Host` and `Origin` headers must be localhost or one of `MCP_ALLOWED_HOSTS` (protection against DNS rebinding).
 
 To host your own instance that people add to Claude or ChatGPT by URL (like the hosted one above), follow **[Self-hosting with Cloudflare Tunnel](docs/self-hosting.md)**: a Docker Compose setup that runs it on your own machine for free.
+
+### How "Sign in with Ravelry" works
+
+`/account/mcp` is an OAuth-protected MCP endpoint, following the MCP authorization spec:
+
+1. An unauthenticated request gets `401` with a `WWW-Authenticate` header pointing to `/.well-known/oauth-protected-resource/account/mcp`, which names this server as the authorization server.
+2. The client discovers `/.well-known/oauth-authorization-server`, registers itself (dynamic client registration) and starts an authorization-code flow with PKCE (required).
+3. The server ([oidc-provider](https://github.com/panva/node-oidc-provider)) sends the user to Ravelry's OAuth to sign in, then shows its own consent page naming the client. Each new client must be approved, so another app can't silently reuse someone's Ravelry sign-in.
+4. The client receives an access token (1 hour) and refresh token, scoped to `/account/mcp` (RFC 8707). Ravelry's own tokens never leave the server; they are refreshed as needed.
+
+Everything is stored in SQLite under `DATA_DIR`: lookup keys are hashed and every record (including Ravelry tokens) is encrypted with a key derived from `AUTH_SECRET`.
 
 ## Development
 
@@ -217,6 +265,17 @@ src/
 ├── http.ts                     # Streamable HTTP: host checks, URL secret, rate limit, /health, landing page
 ├── rate-limit.ts               # Per-client request limiter
 ├── prompts.ts                  # Conversation starters (MCP prompts)
+├── auth/                       # "Sign in with Ravelry": OAuth server, consent page, storage
+│   ├── server.ts               # oidc-provider setup, Ravelry login step, consent, token checks
+│   ├── ravelry-oauth.ts        # Ravelry's OAuth 2.0 endpoints
+│   ├── accounts.ts             # Signed-in accounts and Ravelry token refresh
+│   ├── adapter.ts / db.ts      # Encrypted SQLite storage
+│   └── crypto.ts / pages.ts    # Key derivation, encryption, HTML pages
+├── account/                    # Personal tools for signed-in users
+│   ├── lists.ts                # get_my_stash, get_my_queue, get_my_projects, ...
+│   ├── insights.ts             # find_patterns_for_my_stash, pick_from_my_queue, profile
+│   ├── stash.ts                # Stash normalization (yards per weight)
+│   └── setup.ts                # Wires sign-in and the per-user server
 ├── ravelry/
 │   ├── client.ts               # Ravelry API client (fetch, timeouts, cancellation, errors)
 │   ├── types.ts                # Ravelry API response types

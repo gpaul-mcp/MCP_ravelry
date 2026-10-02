@@ -1,9 +1,22 @@
 import { timingSafeEqual } from 'node:crypto';
-import { createServer as createHttpServer, type IncomingMessage } from 'node:http';
+import {
+  createServer as createHttpServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from 'node:http';
 
 import { hostHeaderValidation, originValidation, toNodeHandler } from '@modelcontextprotocol/node';
-import { createMcpHandler, type McpServer } from '@modelcontextprotocol/server';
+import {
+  type AuthInfo,
+  bearerAuthChallengeResponse,
+  createMcpHandler,
+  getOAuthProtectedResourceMetadataUrl,
+  type McpServer,
+  type McpServerFactory,
+  verifyBearerToken,
+} from '@modelcontextprotocol/server';
 
+import { ACCOUNT_SCOPE, type AuthServer } from './auth/server.ts';
 import { RateLimiter } from './rate-limit.ts';
 
 const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
@@ -19,7 +32,17 @@ export interface HttpOptions {
   rateLimitPerMinute?: number;
   /** Identify clients by the proxy's `CF-Connecting-IP` / `X-Forwarded-For` headers. */
   trustProxy?: boolean;
+  /** "Sign in with Ravelry": OAuth endpoints plus the protected `/account/mcp` endpoint. */
+  account?: {
+    auth: AuthServer;
+    /** Builds the per-request server for a verified user. */
+    factory: McpServerFactory;
+    /** Public URL of `/account/mcp`; the OAuth resource identifier. */
+    resourceUrl: string;
+  };
 }
+
+export const ACCOUNT_PATH = '/account/mcp';
 
 /**
  * Serves the MCP endpoint over Streamable HTTP, plus `GET /health`.
@@ -40,6 +63,11 @@ export async function serveHttp(
   const validateOrigin = originValidation(hostnames);
   const limiter = new RateLimiter(options.rateLimitPerMinute ?? 0);
   const endpoint = options.urlSecret ? `/mcp/${options.urlSecret}` : '/mcp';
+  const { account } = options;
+  const accountHandler = account && createMcpHandler(account.factory);
+  const accountNodeHandler = accountHandler && toNodeHandler(accountHandler);
+  const resourceMetadataUrl =
+    account && getOAuthProtectedResourceMetadataUrl(new URL(account.resourceUrl));
 
   const httpServer = createHttpServer((req, res) => {
     if (!validateHost(req, res) || !validateOrigin(req, res)) return;
@@ -50,13 +78,21 @@ export async function serveHttp(
       return;
     }
     if (pathname === '/' && req.method === 'GET') {
-      const url = options.urlSecret
-        ? undefined
-        : `${publicOrigin(req, options.trustProxy ?? false)}${endpoint}`;
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(landingPage(url));
+      const origin = publicOrigin(req, options.trustProxy ?? false);
+      const page = landingPage(
+        options.urlSecret ? undefined : `${origin}${endpoint}`,
+        account ? account.resourceUrl : undefined,
+      );
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(page);
       return;
     }
-    if (!pathMatches(pathname, endpoint)) {
+
+    const isAccountRoute =
+      account !== undefined &&
+      (account.auth.handles(pathname) ||
+        pathname === ACCOUNT_PATH ||
+        pathname === new URL(resourceMetadataUrl ?? '/', 'http://x').pathname);
+    if (!isAccountRoute && !pathMatches(pathname, endpoint)) {
       res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found.');
       return;
     }
@@ -78,6 +114,22 @@ export async function serveHttp(
       return;
     }
 
+    if (account && accountNodeHandler && resourceMetadataUrl && isAccountRoute) {
+      if (account.auth.handles(pathname)) {
+        void account.auth.handle(req, res, pathname);
+      } else if (pathname === ACCOUNT_PATH) {
+        void serveAccount(req, res, account.auth, accountNodeHandler, resourceMetadataUrl);
+      } else {
+        res
+          .writeHead(200, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          })
+          .end(JSON.stringify(protectedResourceMetadata(account.resourceUrl)));
+      }
+      return;
+    }
+
     void nodeHandler(req, res);
   });
 
@@ -91,12 +143,46 @@ export async function serveHttp(
     port: typeof address === 'object' && address ? address.port : options.port,
     close: async () => {
       await handler.close();
+      await accountHandler?.close();
       await new Promise<void>(resolve =>
         httpServer.close(() => {
           resolve();
         }),
       );
     },
+  };
+}
+
+/** Verifies the bearer token, then serves the personal MCP endpoint as that user. */
+async function serveAccount(
+  req: IncomingMessage & { auth?: AuthInfo },
+  res: ServerResponse,
+  verifier: AuthServer,
+  handler: ReturnType<typeof toNodeHandler>,
+  resourceMetadataUrl: string,
+): Promise<void> {
+  const options = { requiredScopes: [ACCOUNT_SCOPE], resourceMetadataUrl };
+  try {
+    req.auth = await verifyBearerToken(req.headers.authorization, { verifier, ...options });
+  } catch (error) {
+    const challenge = bearerAuthChallengeResponse(error, options);
+    res
+      .writeHead(challenge.status, Object.fromEntries(challenge.headers))
+      .end(Buffer.from(await challenge.arrayBuffer()));
+    return;
+  }
+  await handler(req, res);
+}
+
+/** RFC 9728 document that tells MCP clients where to sign in. */
+function protectedResourceMetadata(resourceUrl: string) {
+  return {
+    resource: resourceUrl,
+    authorization_servers: [new URL(resourceUrl).origin],
+    scopes_supported: [ACCOUNT_SCOPE],
+    bearer_methods_supported: ['header'],
+    resource_name: 'Ravelry (your account)',
+    resource_documentation: 'https://github.com/gpaul-mcp/MCP_ravelry',
   };
 }
 
@@ -116,11 +202,16 @@ function publicOrigin(req: IncomingMessage, trustProxy: boolean): string {
 const escapeHtml = (text: string) => text.replace(/[&<>"']/g, char => `&#${char.charCodeAt(0)};`);
 
 /** What a person sees when opening the server in a browser. */
-function landingPage(mcpUrl: string | undefined): string {
-  const connect = mcpUrl
+function landingPage(mcpUrl: string | undefined, accountUrl: string | undefined): string {
+  const publicPart = mcpUrl
     ? `<p>Add this URL as a custom connector in Claude (Settings → Connectors) or any MCP client:</p>
 <pre>${escapeHtml(mcpUrl)}</pre>`
     : '<p>This is a private instance. Ask its owner for the connector URL.</p>';
+  const accountPart = accountUrl
+    ? `<p>Or, to also let the assistant read your own stash, queue, projects and favorites, use this one instead. You'll be asked to sign in with Ravelry:</p>
+<pre>${escapeHtml(accountUrl)}</pre>`
+    : '';
+  const connect = publicPart + accountPart;
   return `<!doctype html>
 <html lang="en">
 <head>

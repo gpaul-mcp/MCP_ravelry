@@ -61,6 +61,26 @@ The server URL is `https://ravelry.example.com/mcp` (or `/mcp/<MCP_URL_SECRET>` 
 
 Then ask something like "Find me a free crochet amigurumi pattern". The prompts ("Find a pattern", "Substitute a yarn", "What can I make with this yarn?", "Yarn shops near me") show up in each app's prompt or attachment menu.
 
+## 5. Optional: "Sign in with Ravelry"
+
+This adds a second URL, `https://ravelry.example.com/account/mcp`, where each user signs in with their own Ravelry account so the assistant can read their stash, queue, projects, favorites and library (read-only).
+
+1. At <https://www.ravelry.com/pro/developer>, create an app with **OAuth 2.0** credentials and set its redirect URL to `https://ravelry.example.com/oauth/ravelry/callback`.
+2. Add to `.env`:
+
+   ```dotenv
+   RAVELRY_OAUTH_CLIENT_ID=<client id>
+   RAVELRY_OAUTH_CLIENT_SECRET=<client secret>
+   PUBLIC_URL=https://ravelry.example.com
+   AUTH_SECRET=<output of: openssl rand -base64 32>
+   ```
+
+   Keep `AUTH_SECRET` safe and stable: it encrypts the stored sign-ins, and changing it signs everyone out.
+
+3. Restart: `docker compose --profile tunnel up -d --build`. The log shows `"Sign in with Ravelry" enabled at …/account/mcp`.
+
+Sign-ins live in the `ravelry-data` Docker volume. Back it up if you care about users not having to sign in again after a disaster; deleting it just signs everyone out.
+
 ## Update
 
 ```bash

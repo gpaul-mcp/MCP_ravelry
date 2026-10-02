@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 
+import { setupAccounts } from './account/setup.ts';
 import { ConfigError, loadConfig } from './config.ts';
 import { serveHttp } from './http.ts';
 import { RavelryClient } from './ravelry/client.ts';
@@ -24,14 +25,29 @@ async function main(): Promise<void> {
 
   let close: () => Promise<void>;
   if (config.transport === 'http') {
-    ({ close } = await serveHttp(factory, {
+    const accounts =
+      config.account &&
+      setupAccounts({
+        config: config.account,
+        publicRavelry: ravelry,
+        trustProxy: config.trustProxy,
+        requestTimeoutMs: config.requestTimeoutMs,
+        userAgent: `${SERVER_NAME}-mcp/${SERVER_VERSION}`,
+      });
+    const http = await serveHttp(factory, {
       host: config.host,
       port: config.port,
       allowedHosts: config.allowedHosts,
       urlSecret: config.urlSecret,
       rateLimitPerMinute: config.rateLimitPerMinute,
       trustProxy: config.trustProxy,
-    }));
+      account: accounts,
+    });
+    close = async () => {
+      await http.close();
+      accounts?.close();
+    };
+    if (accounts) log(`"Sign in with Ravelry" enabled at ${accounts.resourceUrl}`);
     const path = config.urlSecret ? '/mcp/<MCP_URL_SECRET>' : '/mcp';
     log(`v${SERVER_VERSION} listening on http://${config.host}:${config.port}${path}`);
     if (config.allowedHosts.length > 0) {

@@ -164,3 +164,115 @@ export interface ApiShopSearchResponse {
   shops: ApiShop[];
   paginator: ApiPaginator;
 }
+
+// ---- Personal data (requires the user's own sign-in) ----
+
+export interface ApiStashPack {
+  skeins?: number | string | null;
+  total_yards?: number | null;
+  total_meters?: number | null;
+  total_grams?: number | null;
+  yards_per_skein?: number | null;
+  grams_per_skein?: number | null;
+}
+
+export interface ApiStash {
+  id: number;
+  name?: string | null;
+  permalink?: string | null;
+  colorway_name?: string | null;
+  color_family_name?: string | null;
+  location?: string | null;
+  handspun?: boolean | null;
+  tag_names?: string[];
+  stash_status?: { name?: string | null } | string | null;
+  yarn_weight_name?: string | null;
+  personal_yarn_weight?: Named | null;
+  yarn?: ApiYarnListItem | null;
+  primary_pack?: ApiStashPack | null;
+}
+
+export interface ApiStashListResponse {
+  stash: ApiStash[];
+  paginator?: ApiPaginator;
+}
+
+export interface ApiQueuedProject {
+  id: number;
+  name?: string | null;
+  pattern_id?: number | string | null;
+  pattern_name?: string | null;
+  pattern_author_name?: string | null;
+  yarn_id?: number | string | null;
+  yarn_name?: string | null;
+  skeins?: number | null;
+  notes?: string | null;
+  position_in_queue?: number | null;
+}
+
+export interface ApiQueueResponse {
+  queued_projects: ApiQueuedProject[];
+  paginator: ApiPaginator;
+}
+
+export interface ApiProject {
+  id: number;
+  name: string;
+  permalink: string;
+  pattern_id?: number | null;
+  pattern_name?: string | null;
+  craft_name?: string | null;
+  status_name?: string | null;
+  progress?: number | null;
+  started?: string | null;
+  completed?: string | null;
+  rating?: number | null;
+  size?: string | null;
+  made_for?: string | null;
+  tag_names?: string[];
+  links?: { self?: { href?: string } } | null;
+  first_photo?: ApiPhoto | null;
+}
+
+export interface ApiProjectsResponse {
+  projects: ApiProject[];
+  paginator: ApiPaginator;
+}
+
+export interface ApiFavorite {
+  id: number;
+  type: string;
+  comment?: string | null;
+  tag_list?: string | null;
+  created_at?: string | null;
+  favorited?: {
+    id?: number;
+    name?: string;
+    title?: string;
+    permalink?: string;
+    designer?: { name?: string } | null;
+    pattern_author?: { name?: string } | null;
+    yarn_company_name?: string | null;
+    free?: boolean;
+  } | null;
+}
+
+export interface ApiFavoritesResponse {
+  favorites: ApiFavorite[];
+  paginator: ApiPaginator;
+}
+
+export interface ApiVolume {
+  id: number;
+  title: string;
+  author_name?: string | null;
+  pattern_id?: number | null;
+  patterns_count?: number | null;
+  has_downloads?: boolean | null;
+  created_at?: string | null;
+}
+
+export interface ApiLibraryResponse {
+  volumes: ApiVolume[];
+  paginator: ApiPaginator;
+}

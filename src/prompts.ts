@@ -105,3 +105,52 @@ export function registerPrompts(server: McpServer): void {
       ),
   );
 }
+
+/** Starters that only make sense when the user is signed in to Ravelry. */
+export function registerAccountPrompts(server: McpServer): void {
+  server.registerPrompt(
+    'what_next',
+    {
+      title: 'What should I make next?',
+      description: 'Get a suggestion based on your queue, your stash and what you have made.',
+      argsSchema: z.object({
+        mood: z
+          .string()
+          .optional()
+          .describe('Anything specific, e.g. "something quick", "a gift", "a challenge".'),
+      }),
+    },
+    ({ mood }) =>
+      userMessage(
+        [
+          'Help me decide what to make next.',
+          mood && `I'm in the mood for: ${mood}.`,
+          'Look at my crafting profile, check which queued patterns my stash already covers, ' +
+            'and suggest 2–3 options with why each one fits me. Prefer yarn I already own.',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      ),
+  );
+
+  server.registerPrompt(
+    'use_my_stash',
+    {
+      title: 'Use up my stash',
+      description: 'Find patterns for yarn you already own.',
+      argsSchema: z.object({
+        what: z.string().optional().describe('What you would like to make, e.g. "a hat".'),
+      }),
+    },
+    ({ what }) =>
+      userMessage(
+        [
+          'Find patterns I can make with yarn I already have in my stash.',
+          what && `Ideally: ${what}.`,
+          'Group the ideas by which yarn they would use, and say how much of it each one uses.',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      ),
+  );
+}
