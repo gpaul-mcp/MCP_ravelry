@@ -85,6 +85,7 @@ describe('ravelry MCP server', () => {
       'find_yarns_for_pattern',
       'get_pattern_details',
       'get_yarn_details',
+      'match_yarns',
       'search_patterns',
       'search_yarns',
     ]);

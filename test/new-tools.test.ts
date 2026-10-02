@@ -350,3 +350,74 @@ describe('find_yarn_shops', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe('match_yarns', () => {
+  it('picks the yarn whose name, weight and yardage fit, with high confidence', async () => {
+    const yarns = (items: Partial<ApiYarn>[]) => ({
+      yarns: items,
+      paginator: { page: 1, page_count: 1, page_size: 10, results: items.length },
+    });
+    const rios = {
+      id: 7,
+      name: 'Rios',
+      permalink: 'rios',
+      yarn_company_name: 'Malabrigo Yarn',
+      yarn_weight: { name: 'Worsted' },
+      yardage: 210,
+      grams: 100,
+    };
+    const chunky = {
+      id: 8,
+      name: 'Rios Chunky',
+      permalink: 'rios-chunky',
+      yarn_company_name: 'Malabrigo Yarn',
+      yarn_weight: { name: 'Bulky' },
+      yardage: 100,
+      grams: 100,
+    };
+    const fetchMock = routeFetch({
+      '/yarns/search.json': yarns([chunky, rios]),
+      '/yarns.json': { yarns: { '7': rios, '8': chunky } },
+    });
+    const client = await start(fetchMock);
+
+    const result = await client.callTool({
+      name: 'match_yarns',
+      arguments: {
+        items: [
+          {
+            label: 'Malabrigo Rios 856 x3 39€',
+            brand: 'Malabrigo',
+            name: 'Rios',
+            weight: 'worsted',
+            yards_per_skein: 210,
+          },
+        ],
+      },
+    });
+
+    const [match] = (result.structuredContent as { matches: Record<string, unknown>[] }).matches;
+    expect(match).toMatchObject({
+      confidence: 'high',
+      query: 'Malabrigo Rios',
+      best: { id: 7, name: 'Rios' },
+    });
+    expect((match as { alternatives: { id: number }[] }).alternatives[0]?.id).toBe(8);
+  });
+
+  it('falls back to the cleaned label and reports when nothing matches', async () => {
+    const fetchMock = routeFetch({
+      '/yarns/search.json': { yarns: [], paginator: emptyPage },
+    });
+    const client = await start(fetchMock);
+
+    const result = await client.callTool({
+      name: 'match_yarns',
+      arguments: { items: [{ label: 'Laine mystère 100g x3 12,90€' }] },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      matches: [{ confidence: 'none', best: null, query: 'Laine mystère' }],
+    });
+  });
+});

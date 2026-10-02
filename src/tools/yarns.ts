@@ -30,7 +30,8 @@ export function toYarnSummary(yarn: ApiYarnListItem | ApiYarn): YarnSummary {
   return {
     id: yarn.id,
     name: yarn.name.trim(),
-    company: yarn.yarn_company_name ?? null,
+    company:
+      yarn.yarn_company_name ?? ('yarn_company' in yarn ? yarn.yarn_company?.name : null) ?? null,
     url: yarnUrl(yarn.permalink),
     weight: yarn.yarn_weight?.name ?? null,
     yards_per_skein: yarn.yardage ?? null,

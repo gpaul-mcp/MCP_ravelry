@@ -16,7 +16,7 @@ import {
   verifyBearerToken,
 } from '@modelcontextprotocol/server';
 
-import { ACCOUNT_SCOPE, type AuthServer } from './auth/server.ts';
+import { ACCOUNT_SCOPE, type AuthServer, WRITE_SCOPE } from './auth/server.ts';
 import { RateLimiter } from './rate-limit.ts';
 
 const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
@@ -165,7 +165,11 @@ async function serveAccount(
   try {
     req.auth = await verifyBearerToken(req.headers.authorization, { verifier, ...options });
   } catch (error) {
-    const challenge = bearerAuthChallengeResponse(error, options);
+    // Ask for write too, so one sign-in covers reading and adding to stash/queue.
+    const challenge = bearerAuthChallengeResponse(error, {
+      requiredScopes: [ACCOUNT_SCOPE, WRITE_SCOPE],
+      resourceMetadataUrl,
+    });
     res
       .writeHead(challenge.status, Object.fromEntries(challenge.headers))
       .end(Buffer.from(await challenge.arrayBuffer()));
@@ -179,7 +183,7 @@ function protectedResourceMetadata(resourceUrl: string) {
   return {
     resource: resourceUrl,
     authorization_servers: [new URL(resourceUrl).origin],
-    scopes_supported: [ACCOUNT_SCOPE],
+    scopes_supported: [ACCOUNT_SCOPE, WRITE_SCOPE],
     bearer_methods_supported: ['header'],
     resource_name: 'Ravelry (your account)',
     resource_documentation: 'https://github.com/gpaul-mcp/MCP_ravelry',

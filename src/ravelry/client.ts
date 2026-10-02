@@ -8,6 +8,8 @@ import type {
   ApiProjectsResponse,
   ApiQueueResponse,
   ApiShopSearchResponse,
+  ApiQueuedProject,
+  ApiStash,
   ApiStashListResponse,
   ApiYarn,
   ApiYarnSearchResponse,
@@ -79,33 +81,33 @@ export class RavelryClient {
   }
 
   searchPatterns(params: SearchParams, signal?: AbortSignal) {
-    return this.#get<ApiPatternSearchResponse>('/patterns/search.json', params, signal);
+    return this.#request<ApiPatternSearchResponse>('/patterns/search.json', params, signal);
   }
 
   /** Fetches full details for one or more patterns in a single request. */
   async getPatterns(ids: readonly number[], signal?: AbortSignal): Promise<ApiPattern[]> {
-    const response = await this.#get<ApiPatternsResponse>('/patterns.json', { ids }, signal);
+    const response = await this.#request<ApiPatternsResponse>('/patterns.json', { ids }, signal);
     return Object.values(response.patterns);
   }
 
   searchYarns(params: SearchParams, signal?: AbortSignal) {
-    return this.#get<ApiYarnSearchResponse>('/yarns/search.json', params, signal);
+    return this.#request<ApiYarnSearchResponse>('/yarns/search.json', params, signal);
   }
 
   /** Fetches full details for one or more yarns in a single request. */
   async getYarns(ids: readonly number[], signal?: AbortSignal): Promise<ApiYarn[]> {
-    const response = await this.#get<ApiYarnsResponse>('/yarns.json', { ids }, signal);
+    const response = await this.#request<ApiYarnsResponse>('/yarns.json', { ids }, signal);
     return Object.values(response.yarns);
   }
 
   searchShops(params: SearchParams, signal?: AbortSignal) {
-    return this.#get<ApiShopSearchResponse>('/shops/search.json', params, signal);
+    return this.#request<ApiShopSearchResponse>('/shops/search.json', params, signal);
   }
 
   /** The pattern category tree. Rarely changes, so it is cached for a day. */
   async getPatternCategories(signal?: AbortSignal): Promise<ApiPatternCategoryNode> {
     if (this.#categories && this.#categories.expires > Date.now()) return this.#categories.value;
-    const response = await this.#get<{ pattern_categories: ApiPatternCategoryNode }>(
+    const response = await this.#request<{ pattern_categories: ApiPatternCategoryNode }>(
       '/pattern_categories/list.json',
       {},
       signal,
@@ -117,7 +119,7 @@ export class RavelryClient {
   // ---- Personal data: only works with a per-user `authorization`. ----
 
   listStash(username: string, params: SearchParams, signal?: AbortSignal) {
-    return this.#get<ApiStashListResponse>(
+    return this.#request<ApiStashListResponse>(
       `/people/${user(username)}/stash/list.json`,
       params,
       signal,
@@ -125,15 +127,23 @@ export class RavelryClient {
   }
 
   listQueue(username: string, params: SearchParams, signal?: AbortSignal) {
-    return this.#get<ApiQueueResponse>(`/people/${user(username)}/queue/list.json`, params, signal);
+    return this.#request<ApiQueueResponse>(
+      `/people/${user(username)}/queue/list.json`,
+      params,
+      signal,
+    );
   }
 
   listProjects(username: string, params: SearchParams, signal?: AbortSignal) {
-    return this.#get<ApiProjectsResponse>(`/projects/${user(username)}/list.json`, params, signal);
+    return this.#request<ApiProjectsResponse>(
+      `/projects/${user(username)}/list.json`,
+      params,
+      signal,
+    );
   }
 
   listFavorites(username: string, params: SearchParams, signal?: AbortSignal) {
-    return this.#get<ApiFavoritesResponse>(
+    return this.#request<ApiFavoritesResponse>(
       `/people/${user(username)}/favorites/list.json`,
       params,
       signal,
@@ -141,14 +151,40 @@ export class RavelryClient {
   }
 
   searchLibrary(username: string, params: SearchParams, signal?: AbortSignal) {
-    return this.#get<ApiLibraryResponse>(
+    return this.#request<ApiLibraryResponse>(
       `/people/${user(username)}/library/search.json`,
       params,
       signal,
     );
   }
 
-  async #get<T>(path: string, params: SearchParams, signal?: AbortSignal): Promise<T> {
+  /** Creates a stash entry; `data` is Ravelry's Stash (POST) object. */
+  createStash(username: string, data: Record<string, unknown>, signal?: AbortSignal) {
+    return this.#request<{ stash: ApiStash }>(
+      `/people/${user(username)}/stash/create.json`,
+      {},
+      signal,
+      data,
+    );
+  }
+
+  /** Adds a pattern to the queue; `data` is Ravelry's QueuedProject (POST) object. */
+  createQueuedProject(username: string, data: Record<string, unknown>, signal?: AbortSignal) {
+    return this.#request<{ queued_project: ApiQueuedProject }>(
+      `/people/${user(username)}/queue/create.json`,
+      {},
+      signal,
+      data,
+    );
+  }
+
+  /** GET, or POST with a JSON body when `body` is given. */
+  async #request<T>(
+    path: string,
+    params: SearchParams,
+    signal?: AbortSignal,
+    body?: Record<string, unknown>,
+  ): Promise<T> {
     const search = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
       if (value === undefined || value === '') continue;
@@ -168,11 +204,14 @@ export class RavelryClient {
     let response: Response;
     try {
       response = await this.#fetch(`${this.#baseUrl}${path}${query}`, {
+        method: body ? 'POST' : 'GET',
         headers: {
           Accept: 'application/json',
           Authorization: authorization,
           'User-Agent': this.#userAgent,
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
         },
+        body: body ? JSON.stringify(body) : undefined,
         signal: combined,
       });
     } catch (error) {

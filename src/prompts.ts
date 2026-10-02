@@ -154,3 +154,35 @@ export function registerAccountPrompts(server: McpServer): void {
       ),
   );
 }
+
+/** Starters that write to the user's Ravelry (only offered when signed in). */
+export function registerAccountWritePrompts(server: McpServer): void {
+  server.registerPrompt(
+    'add_yarn_from_photo',
+    {
+      title: 'Add yarn to my stash from a photo',
+      description:
+        'Attach a photo of a receipt, invoice or ball band, and add the yarn to your stash.',
+      argsSchema: z.object({
+        details: z
+          .string()
+          .optional()
+          .describe(
+            'Anything not on the photo, e.g. "bought at Lil Weasel", "stored in the blue box".',
+          ),
+      }),
+    },
+    ({ details }) =>
+      userMessage(
+        [
+          'Add the yarn in the attached photo (receipt, invoice or ball band) to my Ravelry stash.',
+          details && `Extra details: ${details}.`,
+          'Read every yarn line (brand, name, colorway, dye lot, quantity, length, weight, price), ' +
+            'match them with match_yarns, show me a short table of what you will add and ask me to ' +
+            'confirm anything uncertain before adding.',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      ),
+  );
+}
