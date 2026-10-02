@@ -30,6 +30,16 @@ export const PATTERN_FITS = [
   'female',
   'male',
   'unisex',
+  'fitted',
+  'negative-ease',
+  'no-ease',
+  'positive-ease',
+  'oversized',
+  'petite',
+  'plus',
+  'tall',
+  'maternity',
+  'miniature',
 ] as const;
 
 export const LANGUAGES = {

@@ -66,6 +66,14 @@ export interface ApiPattern {
   yardage_max?: number | null;
   yardage_description?: string | null;
   gauge_description?: string | null;
+  /** Stitches (and rows) per `gauge_divisor` inches. */
+  gauge?: number | null;
+  row_gauge?: number | null;
+  gauge_divisor?: number | null;
+  gauge_pattern?: string | null;
+  has_uk_terminology?: boolean | null;
+  has_us_terminology?: boolean | null;
+  pattern_attributes?: { id: number; permalink: string }[];
   sizes_available?: string | null;
   pattern_needle_sizes?: Named[];
   packs?: ApiPack[];
@@ -109,6 +117,24 @@ export interface ApiPatternCategoryNode {
 export interface ApiNeedleSize {
   name: string;
   metric: number;
+}
+
+/** A row of /needles/sizes.json: one metric size with its US needle and hook names. */
+export interface ApiNeedleSizeRow {
+  id: number;
+  metric: number;
+  us?: string | null;
+  hook?: string | null;
+}
+
+/** A row of /yarn_weights.json. */
+export interface ApiYarnWeight {
+  id: number;
+  name: string;
+  ply?: string | null;
+  wpi?: string | null;
+  knit_gauge?: string | null;
+  crochet_gauge?: string | null;
 }
 
 interface ApiYarnBase {

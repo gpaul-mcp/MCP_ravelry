@@ -14,8 +14,10 @@ import type {
   ApiStash,
   ApiStashFull,
   ApiStashListResponse,
+  ApiNeedleSizeRow,
   ApiYarn,
   ApiYarnSearchResponse,
+  ApiYarnWeight,
   ApiYarnsResponse,
 } from './types.ts';
 
@@ -65,7 +67,7 @@ export class RavelryClient {
   readonly #baseUrl: string;
   readonly #userAgent: string;
   readonly #fetch: typeof fetch;
-  #categories: { value: ApiPatternCategoryNode; expires: number } | undefined;
+  readonly #catalogs = new Map<string, { value: Promise<unknown>; expires: number }>();
 
   constructor(options: RavelryClientOptions) {
     if (options.authorization) {
@@ -108,15 +110,41 @@ export class RavelryClient {
   }
 
   /** The pattern category tree. Rarely changes, so it is cached for a day. */
-  async getPatternCategories(signal?: AbortSignal): Promise<ApiPatternCategoryNode> {
-    if (this.#categories && this.#categories.expires > Date.now()) return this.#categories.value;
-    const response = await this.#request<{ pattern_categories: ApiPatternCategoryNode }>(
+  getPatternCategories(signal?: AbortSignal): Promise<ApiPatternCategoryNode> {
+    return this.#catalog(
       '/pattern_categories/list.json',
-      {},
       signal,
+      response => (response as { pattern_categories: ApiPatternCategoryNode }).pattern_categories,
     );
-    this.#categories = { value: response.pattern_categories, expires: Date.now() + CATALOG_TTL_MS };
-    return response.pattern_categories;
+  }
+
+  /** Every needle and hook size, metric with US names. Cached for a day. */
+  getNeedleSizes(signal?: AbortSignal): Promise<ApiNeedleSizeRow[]> {
+    return this.#catalog(
+      '/needles/sizes.json',
+      signal,
+      response => (response as { needle_sizes: ApiNeedleSizeRow[] }).needle_sizes,
+    );
+  }
+
+  /** Yarn weights with ply, wraps per inch and typical gauge. Cached for a day. */
+  getYarnWeights(signal?: AbortSignal): Promise<ApiYarnWeight[]> {
+    return this.#catalog(
+      '/yarn_weights.json',
+      signal,
+      response => (response as { yarn_weights: ApiYarnWeight[] }).yarn_weights,
+    );
+  }
+
+  /** Reference lists that rarely change, shared by every request for a day. */
+  #catalog<T>(path: string, signal: AbortSignal | undefined, pick: (response: unknown) => T) {
+    const cached = this.#catalogs.get(path);
+    if (cached && cached.expires > Date.now()) return cached.value as Promise<T>;
+    const value = this.#request<unknown>(path, {}, signal).then(pick);
+    this.#catalogs.set(path, { value, expires: Date.now() + CATALOG_TTL_MS });
+    // A failed request is not cached.
+    value.catch(() => this.#catalogs.delete(path));
+    return value;
   }
 
   // ---- Personal data: only works with a per-user `authorization`. ----

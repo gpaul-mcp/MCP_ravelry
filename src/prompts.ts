@@ -106,6 +106,127 @@ export function registerPrompts(server: McpServer): void {
   );
 }
 
+/** Pattern help: reading, translating and fixing, with the toolbox doing the counting. */
+export function registerHelpPrompts(server: McpServer): void {
+  server.registerPrompt(
+    'read_me_this_row',
+    {
+      title: 'Read me this row',
+      description: 'Paste a row or a few rows and get them explained step by step.',
+      argsSchema: z.object({
+        rows: z.string().describe('The rows as written in the pattern.'),
+        stitches: z.string().optional().describe('Stitches on the needle before the first row.'),
+        craft: z.string().optional().describe('knitting or crochet'),
+      }),
+    },
+    ({ rows, stitches, craft }) =>
+      userMessage(
+        [
+          `Walk me through these ${craft === 'crochet' ? 'crochet' : 'knitting'} instructions:`,
+          rows,
+          stitches && `I have ${stitches} stitches before I start.`,
+          'Check the stitch counts with count_stitches first (one row per item), then explain ' +
+            'each step in plain words, one line per step, with the running stitch count. Expand ' +
+            'every abbreviation (crafting_reference) and point out anything that does not add up.',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      ),
+  );
+
+  server.registerPrompt(
+    'chart_to_written',
+    {
+      title: 'Chart ↔ written instructions',
+      description: 'Turn a chart (photo) into written rows, or written rows into a chart.',
+      argsSchema: z.object({
+        direction: z
+          .string()
+          .optional()
+          .describe('"chart to written" (default) or "written to chart".'),
+        details: z
+          .string()
+          .optional()
+          .describe(
+            'Stitch count, flat or in the round, and the chart key if it is not in the photo.',
+          ),
+      }),
+    },
+    ({ direction, details }) =>
+      userMessage(
+        [
+          /written to chart/i.test(direction ?? '')
+            ? 'Turn the written instructions I give you into a chart: a grid with one symbol per ' +
+              'stitch (use the standard symbols and give a key), row numbers on the side where ' +
+              'the row starts.'
+            : 'Turn the chart I attach into written instructions, one line per row, using ' +
+              'standard abbreviations. Read right-side rows right to left and wrong-side rows left ' +
+              'to right (in the round, every round right to left), and swap knit/purl symbols on ' +
+              'wrong-side rows.',
+          details && `Details: ${details}.`,
+          'Then check every row with count_stitches and fix anything that does not add up before ' +
+            'showing me the result. Tell me if part of the chart is hard to read.',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      ),
+  );
+
+  server.registerPrompt(
+    'pattern_from_photo',
+    {
+      title: 'Find a pattern from a photo',
+      description: 'Attach a photo of something you saw and find patterns like it.',
+      argsSchema: z.object({
+        notes: z
+          .string()
+          .optional()
+          .describe('Anything to add, e.g. "for a child", "free only", "I crochet".'),
+      }),
+    },
+    ({ notes }) =>
+      userMessage(
+        [
+          'Look at the photo I attach and find Ravelry patterns like it.',
+          notes && `Notes: ${notes}.`,
+          'First describe what you see: knit or crochet, what it is, construction (top down, ' +
+            'raglan, yoke, seamless...), stitch patterns (cables, lace, colorwork...), and the ' +
+            'likely yarn weight. Then search_patterns with category, attributes and weight, try ' +
+            'a second search if the first is thin, and show the closest 3–5 with what matches ' +
+            'and what differs.',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      ),
+  );
+
+  server.registerPrompt(
+    'fix_my_problem',
+    {
+      title: 'Fix my knitting or crochet problem',
+      description: 'Describe what went wrong (or attach a photo) and get help fixing it.',
+      argsSchema: z.object({
+        problem: z
+          .string()
+          .describe(
+            'e.g. "my scarf curls", "my gauge is off", "a hole appeared", "edges are wavy".',
+          ),
+      }),
+    },
+    ({ problem }) =>
+      userMessage(
+        [
+          `I have a problem with my project: ${problem}.`,
+          'Ask me the one or two questions you need first (craft, yarn, stitch pattern, ' +
+            'a photo if it helps) unless the answer is obvious. Then explain the likely cause, ' +
+            'how to fix it now (with and without ripping back), and how to avoid it next time. ' +
+            'Use the calculators when numbers are involved (adjust_for_gauge for gauge, ' +
+            'count_stitches for counts).',
+        ].join('\n'),
+      ),
+  );
+}
+
 /** Starters that only make sense when the user is signed in to Ravelry. */
 export function registerAccountPrompts(server: McpServer): void {
   server.registerPrompt(

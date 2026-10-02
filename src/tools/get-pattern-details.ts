@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod';
 
+import { attributeName } from '../ravelry/attributes.ts';
 import type { RavelryClient } from '../ravelry/client.ts';
 import type { ApiPattern } from '../ravelry/types.ts';
 import { categoryPath, nonEmpty, patternUrl, rounded, truncate } from './format.ts';
@@ -37,6 +38,17 @@ const patternSchema = z.object({
   yarn_weight: z.string().nullable(),
   yardage: z.string().nullable(),
   gauge: z.string().nullable(),
+  gauge_per_10cm: z
+    .object({ stitches: z.number(), rows: z.number().nullable() })
+    .nullable()
+    .describe('The gauge as numbers, per 10 cm / 4 in, for adjust_for_gauge.'),
+  terminology: z
+    .enum(['US', 'UK', 'US and UK'])
+    .nullable()
+    .describe('Crochet terms the pattern is written in: UK "dc" is US "sc".'),
+  attributes: z
+    .array(z.string())
+    .describe('Techniques and construction, e.g. "top down", "cables", "chart".'),
   needles_or_hooks: z.array(z.string()),
   sizes_available: z.string().nullable(),
   languages: z.array(z.string()),
@@ -59,7 +71,8 @@ export function registerGetPatternDetails(server: McpServer, ravelry: RavelryCli
       title: 'Get Ravelry pattern details',
       description:
         'Get full details for one or more Ravelry patterns by id: designer, price, difficulty, ' +
-        'rating, yarn weight, yardage, gauge, needle/hook sizes, sizes, and the designer notes.',
+        'rating, yarn weight, yardage, gauge, needle/hook sizes, sizes, techniques, crochet ' +
+        'terminology (US/UK), and the designer notes.',
       inputSchema,
       outputSchema,
       _meta: VIEW_META,
@@ -113,10 +126,34 @@ function toDetails(pattern: ApiPattern): PatternDetails {
     yarn_weight: nonEmpty(pattern.yarn_weight_description) ?? nonEmpty(pattern.yarn_weight?.name),
     yardage,
     gauge: nonEmpty(pattern.gauge_description),
+    gauge_per_10cm: gaugePer10cm(pattern),
+    terminology: terminology(pattern),
+    attributes: (pattern.pattern_attributes ?? []).map(a => attributeName(a.permalink)),
     needles_or_hooks: (pattern.pattern_needle_sizes ?? []).map(size => size.name),
     sizes_available: nonEmpty(pattern.sizes_available),
     languages: (pattern.languages ?? []).map(language => language.name),
     photo_url: pattern.photos?.[0]?.medium_url ?? null,
     notes: pattern.notes ? truncate(pattern.notes, MAX_NOTES_LENGTH) : null,
   };
+}
+
+/** Ravelry stores gauge per `gauge_divisor` inches; 4 in ≈ 10 cm, as on ball bands. */
+export function gaugePer10cm(
+  pattern: ApiPattern,
+): { stitches: number; rows: number | null } | null {
+  // 0 or missing means Ravelry's default, 4 inches.
+  const per = pattern.gauge_divisor === 0 ? 4 : (pattern.gauge_divisor ?? 4);
+  if (!pattern.gauge) return null;
+  const scale = (value: number) => Math.round((value * 4 * 10) / per) / 10;
+  return {
+    stitches: scale(pattern.gauge),
+    rows: pattern.row_gauge ? scale(pattern.row_gauge) : null,
+  };
+}
+
+function terminology(pattern: ApiPattern): 'US' | 'UK' | 'US and UK' | null {
+  if (pattern.has_us_terminology && pattern.has_uk_terminology) return 'US and UK';
+  if (pattern.has_uk_terminology) return 'UK';
+  if (pattern.has_us_terminology) return 'US';
+  return null;
 }
