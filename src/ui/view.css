@@ -302,16 +302,15 @@ button:disabled {
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-top: auto;
   padding-top: 2px;
 }
 
+/* Wraps to a second line instead of cutting labels when fonts are large (phones). */
 .actions button {
-  flex: 1 1 0;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 1 0 auto;
   min-height: 28px;
   padding: 4px 6px;
   font-size: 12px;

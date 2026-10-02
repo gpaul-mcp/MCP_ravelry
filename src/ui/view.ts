@@ -266,7 +266,7 @@ function patternCard(pattern: PatternSummary, facts: Map<number, HTMLElement>): 
               ask(`Add ${label(pattern)} to my Ravelry queue.`);
             },
           },
-          '+ Queue',
+          'Queue',
         ),
       ),
     ),
