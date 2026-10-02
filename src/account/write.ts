@@ -151,9 +151,7 @@ export function registerAccountWrites(server: McpServer, user: UserContext): voi
           );
           output.added.push({
             stash_id: stash.id,
-            yarn: stash.yarn
-              ? `${stash.yarn.yarn_company_name ?? ''} ${stash.yarn.name}`.trim()
-              : (stash.name ?? entry.yarn_name ?? 'yarn'),
+            yarn: toStashEntry(stash).yarn,
             colorway: stash.colorway_name ?? entry.colorway ?? null,
             url: `https://www.ravelry.com/people/${encodeURIComponent(user.username)}/stash/${stash.permalink ?? stash.id}`,
           });

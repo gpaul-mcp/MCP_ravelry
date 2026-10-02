@@ -64,8 +64,12 @@ export function toStashEntry(stash: ApiStash | ApiStashFull): StashEntry {
   const freeSkeins = Number((remainder ?? primary)?.skeins);
   const gramsPerSkein = primary?.grams_per_skein ?? stash.yarn?.grams;
 
+  // Full stash records nest the brand as yarn.yarn_company; lists flatten it.
+  const company =
+    stash.yarn?.yarn_company_name ??
+    (stash.yarn as { yarn_company?: { name?: string } } | null | undefined)?.yarn_company?.name;
   const yarnName = stash.yarn
-    ? `${stash.yarn.yarn_company_name ?? ''} ${stash.yarn.name}`.trim()
+    ? `${company ?? ''} ${stash.yarn.name}`.trim()
     : (nonEmpty(stash.name) ?? 'Unnamed yarn');
   const status =
     typeof stash.stash_status === 'string' ? stash.stash_status : stash.stash_status?.name;
@@ -84,9 +88,11 @@ export function toStashEntry(stash: ApiStash | ApiStashFull): StashEntry {
     skeins: Number.isFinite(freeSkeins) && freeSkeins > 0 ? freeSkeins : null,
     yards: round(freeYards),
     total_yards: round(totalYards),
+    // Ravelry does not always update grams on the remainder pack, so derive them from skeins.
     grams:
-      (remainder ?? primary)?.total_grams ??
-      (freeSkeins && gramsPerSkein ? Math.round(freeSkeins * gramsPerSkein) : null),
+      freeSkeins && gramsPerSkein
+        ? Math.round(freeSkeins * gramsPerSkein)
+        : ((remainder ?? primary)?.total_grams ?? null),
     in_projects: projectPacks.map(pack => ({
       project_id: pack.project_id ?? 0,
       yards: round(yardsOf(pack)),

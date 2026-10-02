@@ -82,6 +82,7 @@ const check = (label: string, ok: boolean, detail: unknown) => {
 
 let stashId: number | undefined;
 let projectId: number | undefined;
+const extraProjects: number[] = [];
 try {
   // Cascade 220 (yarn 523): 3 skeins x 220 yd.
   const added = await call<{ added: { stash_id: number }[] }>('add_to_my_stash', {
@@ -170,13 +171,50 @@ try {
 
   const project = await call<{ log: string }>('get_my_project', { project_id: projectId });
   check('get_my_project log', project.log.split('\n').length >= 3, project.log);
+
+  // Frogging gives the yarn back to the stash.
+  const frogProject = await call<{ id: number }>('start_project', {
+    name: 'MCP live check frog',
+    craft: 'knitting',
+    yarn: [{ stash_id: stashId, yards: 360 }],
+  });
+  extraProjects.push(frogProject.id);
+  stash = await call<Stash>('get_my_stash', { search: 'MCP live check' });
+  check('all 360 yd set aside', (find(stash, stashId!)?.yards ?? 0) <= 0, find(stash, stashId!));
+  const frogged = await call<{ status: string; released_yarn: boolean }>('update_project_status', {
+    project_id: frogProject.id,
+    status: 'frogged',
+  });
+  check(
+    'frogged releases the yarn',
+    frogged.status === 'Frogged' && frogged.released_yarn,
+    frogged,
+  );
+  stash = await call<Stash>('get_my_stash', { search: 'MCP live check' });
+  check('360 yd free again', find(stash, stashId!)?.yards === 360, find(stash, stashId!));
+
+  // Finishing with every yard used marks the yarn used up (and hides it from the stash).
+  const lastProject = await call<{ id: number }>('start_project', {
+    name: 'MCP live check used up',
+    craft: 'crochet',
+    yarn: [{ stash_id: stashId, yards: 360 }],
+  });
+  extraProjects.push(lastProject.id);
+  const done = await call<{ marked_used_up: number[] }>('update_project_status', {
+    project_id: lastProject.id,
+    status: 'finished',
+  });
+  check('empty yarn marked used up', done.marked_used_up.includes(stashId!), done);
+  stash = await call<Stash>('get_my_stash', { search: 'MCP live check' });
+  check('used-up yarn no longer listed', !find(stash, stashId!), stash.stash.length);
 } finally {
   // Clean up directly with the user's sign-in: there is deliberately no "delete project" tool.
   const ravelry = new RavelryClient({
     authorization: async () => `Bearer ${await accounts.store.accessToken(row.account_id)}`,
   });
-  if (projectId) {
-    await ravelry.deleteProject(username, projectId).then(
+  for (const id of [projectId, ...extraProjects]) {
+    if (!id) continue;
+    await ravelry.deleteProject(username, id).then(
       () => {
         console.log('cleanup project: deleted');
       },
