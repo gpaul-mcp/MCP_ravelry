@@ -1452,6 +1452,180 @@ function renderNeedles(data: Data): Child[] {
   ];
 }
 
+// ---- Row counter ----
+
+interface CounterView {
+  name: string;
+  value: number;
+  target: number | null;
+  repeat: number | null;
+  row_in_repeat: number | null;
+  repeats_done: number | null;
+  remaining: number | null;
+}
+
+function showCounter(data: Data) {
+  root.replaceChildren();
+  for (const child of renderCounter(data)) if (child) root.append(child);
+}
+
+function renderCounter(data: Data): Child[] {
+  const project = data.project as { id: number; name: string; url: string | null } | null;
+  const counters = (data.counters ?? []) as CounterView[];
+  const others = (data.other_projects ?? []) as { id: number; name: string; summary: string }[];
+  if (!project) {
+    return [
+      h('h2', {}, '🔢 Row counters'),
+      others.length
+        ? h(
+            'div',
+            { class: 'rows' },
+            ...others.map(other =>
+              h(
+                'div',
+                { class: 'row' },
+                h('div', { class: 'thumb' }, '🧶'),
+                h(
+                  'div',
+                  { class: 'main' },
+                  h('div', { class: 'title' }, other.name),
+                  h('div', { class: 'byline' }, other.summary),
+                ),
+                h(
+                  'button',
+                  {
+                    onclick: () => {
+                      void app
+                        .callServerTool({
+                          name: 'get_row_counter',
+                          arguments: { project_id: other.id },
+                        })
+                        .then(result => {
+                          showCounter(result.structuredContent as Data);
+                        });
+                    },
+                  },
+                  'Open',
+                ),
+              ),
+            ),
+          )
+        : h('p', { class: 'empty' }, 'No counters yet. Ask to count rows on one of your projects.'),
+    ];
+  }
+
+  const update = (counter: string, args: Record<string, unknown>, buttons: HTMLButtonElement[]) => {
+    for (const button of buttons) button.disabled = true;
+    app
+      .callServerTool({
+        name: 'update_row_counter',
+        arguments: { project_id: project.id, counter, ...args },
+      })
+      .then(result => {
+        if (result.isError) throw new Error('update failed');
+        showCounter(result.structuredContent as Data);
+      })
+      .catch(() => {
+        for (const button of buttons) button.disabled = false;
+      });
+  };
+
+  const card = (counter: CounterView) => {
+    const minus = h('button', { class: 'big', title: 'One row back' }, '−');
+    const plus = h('button', { class: 'big primary', title: 'One more row' }, '+');
+    const reset = h('button', { title: 'Back to 0' }, 'Reset');
+    const buttons = [minus, plus, reset];
+    minus.addEventListener('click', () => {
+      update(counter.name, { action: 'subtract' }, buttons);
+    });
+    plus.addEventListener('click', () => {
+      update(counter.name, { action: 'add' }, buttons);
+    });
+    reset.addEventListener('click', () => {
+      if (counter.value === 0 || confirm(`Reset ${counter.name} to 0?`)) {
+        update(counter.name, { action: 'reset' }, buttons);
+      }
+    });
+    const fill = h('div', { class: 'fill' });
+    if (counter.target)
+      fill.style.width = `${Math.min(100, (counter.value / counter.target) * 100)}%`;
+    return h(
+      'div',
+      { class: 'counter' },
+      h('div', { class: 'label' }, counter.name),
+      h(
+        'div',
+        { class: 'count' },
+        minus,
+        h('div', { class: 'value' }, String(counter.value)),
+        plus,
+      ),
+      h(
+        'div',
+        { class: 'chips' },
+        counter.repeat && counter.row_in_repeat
+          ? chip(
+              `row ${counter.row_in_repeat} of ${counter.repeat} · ${counter.repeats_done ?? 0} repeats done`,
+              'accent',
+            )
+          : null,
+        counter.target
+          ? chip(
+              counter.remaining
+                ? `${counter.remaining} to go of ${counter.target}`
+                : 'Target reached! 🎉',
+              counter.remaining ? '' : 'good',
+            )
+          : null,
+      ),
+      counter.target ? h('div', { class: 'track' }, fill) : null,
+      h('div', { class: 'actions' }, reset),
+    );
+  };
+
+  const start = h('button', { class: 'primary' }, 'Start counting rows');
+  start.addEventListener('click', () => {
+    update('Rows', { action: 'configure' }, [start]);
+  });
+
+  return [
+    h('h2', {}, `🔢 ${project.name}`),
+    counters.length
+      ? h('div', { class: 'counters' }, ...counters.map(card))
+      : h('div', { class: 'actions' }, start),
+    h(
+      'div',
+      { class: 'actions' },
+      counters.length > 0 &&
+        h(
+          'button',
+          {
+            onclick: () => {
+              ask(
+                `Log my progress on "${project.name}" (project ${project.id}) to Ravelry: ${counters
+                  .map(
+                    c => `${c.name.toLowerCase()} ${c.value}${c.target ? ` of ${c.target}` : ''}`,
+                  )
+                  .join(', ')}.`,
+              );
+            },
+          },
+          'Save to Ravelry log',
+        ),
+      h(
+        'button',
+        {
+          onclick: () => {
+            ask(`Add another counter to "${project.name}" (project ${project.id}): `);
+          },
+        },
+        'Add a counter',
+      ),
+      project.url && linkButton(project.url, 'Project ↗'),
+    ),
+  ];
+}
+
 const renderers: Record<string, (data: Data) => Child[]> = {
   get_my_project: renderProject,
   start_project: renderProject,
@@ -1476,6 +1650,8 @@ const renderers: Record<string, (data: Data) => Child[]> = {
   audit_my_stash: renderStashAudit,
   discover_patterns_for_me: renderDiscover,
   get_my_needles: renderNeedles,
+  get_row_counter: renderCounter,
+  update_row_counter: renderCounter,
 };
 
 function render(data: Data | undefined, isError: boolean) {

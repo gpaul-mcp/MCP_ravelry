@@ -434,3 +434,39 @@ button:disabled {
   color: var(--muted);
   font-size: 12.5px;
 }
+
+/* Row counter */
+.counters {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.counter {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+.counter .label {
+  font-weight: 600;
+}
+.counter .count {
+  display: grid;
+  grid-template-columns: 56px 1fr 56px;
+  align-items: center;
+  gap: 8px;
+}
+.counter .value {
+  font-size: 44px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+button.big {
+  height: 56px;
+  font-size: 28px;
+  border-radius: var(--radius-sm);
+  padding: 0;
+}
