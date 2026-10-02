@@ -1,0 +1,37 @@
+# Self-hosting: the MCP server plus a Cloudflare Tunnel that publishes it.
+#
+#   cp .env.example .env    # then fill in the "Self-hosting" section
+#   docker compose --profile tunnel up -d
+#
+# Already running cloudflared on this machine? Start without the profile
+# (`docker compose up -d`), and point your tunnel's public hostname at
+# http://localhost:3000.
+
+services:
+  ravelry-mcp:
+    build: .
+    image: ravelry-mcp
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MCP_TRANSPORT: http
+      HOST: 0.0.0.0
+      PORT: 3000
+      TRUST_PROXY: 'true'
+    # Only reachable from this machine; the tunnel is the public entrance.
+    ports:
+      - 127.0.0.1:3000:3000
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+  cloudflared:
+    profiles: [tunnel]
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env}
+    depends_on:
+      ravelry-mcp:
+        condition: service_healthy

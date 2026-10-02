@@ -1,231 +1,206 @@
 # Ravelry MCP Server
 
-A Model Context Protocol (MCP) server that provides tools for interacting with the Ravelry API, allowing AI assistants to search for, explore, and retrieve knitting and crochet patterns.
+A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI assistants search for, explore and compare knitting and crochet patterns on [Ravelry](https://www.ravelry.com).
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-
-## 🌟 Overview
-
-This MCP server wraps the Ravelry API to create a reliable interface that can be used by AI assistants. It provides tools to:
-- Search for knitting and crochet patterns
-- Get detailed pattern information
-- Retrieve multiple pattern details at once
+[![CI](https://github.com/gpaul-mcp/MCP_ravelry/actions/workflows/ci.yml/badge.svg)](https://github.com/gpaul-mcp/MCP_ravelry/actions/workflows/ci.yml)
+[![MCP SDK v2](https://img.shields.io/badge/MCP_SDK-v2-blue)](https://ts.sdk.modelcontextprotocol.io/v2/)
+[![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 
 This project was inspired by my girlfriend, whose passion for knitting and crochet encouraged me to create this bridge between AI assistants and the Ravelry crafting community. Since she's not very tech-savvy and somewhat skeptical about AI, this serves as my way of connecting with her interests and showing how technology can enhance her crafting experience rather than replace it.
 
-## 🚀 Features
+## Tools
 
-- **🔍 Pattern Search**: Search Ravelry's database of patterns using keywords and filters
-- **📋 Pattern Details**: Get comprehensive information about specific patterns
-- **🧶 Craft Filtering**: Filter patterns by craft type (knitting or crochet)
-- **💰 Price Options**: Filter patterns by availability (free, paid, etc.)
-- **🤖 AI Assistant Integration**: Designed to work with AI assistants through the Model Context Protocol
+### Patterns
 
-## 📋 Prerequisites
+| Tool                  | What it does                                                                                                                                                                                                                                                                                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `search_patterns`     | Search by keyword plus filters: `craft`, `category` (plain words like "hat", "toys" or "jumper" are mapped to Ravelry's categories), yarn `weight`, `yardage_min`/`yardage_max`, `difficulty_max`, `fit` (baby, child, adult...), `language`, `designer`, `availability` (`free` _(default)_, `ravelry`, `online`, `inprint`, `any`), `sort`, paging. |
+| `get_pattern_details` | Full details for 1–20 patterns: designer, price, difficulty, rating, yarn weight, yardage, gauge, needle/hook sizes, sizes, languages, photo and designer notes.                                                                                                                                                                                      |
 
-- Node.js (v14 or higher)
-- npm or yarn
-- Ravelry API credentials (username and password)
+### Yarns
 
-## 🔧 Installation
+| Tool                     | What it does                                                                                                                                                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `search_yarns`           | Search by name plus `weight`, `fiber` (merino, alpaca, cotton...) and `attributes` (superwash, hand-dyed, self-striping...), sorted by best match, rating or popularity. Discontinued yarns are hidden unless asked. |
+| `get_yarn_details`       | For 1–20 yarns: fiber content, yards and grams per skein, recommended needles and hooks, gauge, care, texture, color/dye attributes, where it was made, and notes.                                                   |
+| `find_yarns_for_pattern` | Yarn substitution: the yarns other Ravelry users actually used for a pattern, ranked by how many projects used each, next to the weight, yardage and gauge the pattern calls for and the designer's suggested yarns. |
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ravelry-mcp
-   ```
+### Shops
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+| Tool              | What it does                                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `find_yarn_shops` | Local yarn shops around a point (latitude/longitude + radius, nearest first) or by name or city: address, distance, website, phone, email. |
 
-3. **Set up environment variables**
-   ```bash
-   # Create development environment file
-   cp .env.example .env.development
-   # Create production environment file
-   cp .env.example .env.production
-   ```
+Every tool is read-only (`readOnlyHint`), validates its input against the values Ravelry accepts, and returns typed `structuredContent` described by an `outputSchema`.
 
-4. **Configure API credentials**
-   - Get your Ravelry username and password
-   - Add your credentials to both `.env.development` and `.env.production` files:
-     ```
-     AUTH_USER=your_ravelry_username
-     AUTH_PASS=your_ravelry_password
-     ```
+Example prompts:
 
-## 🎮 Usage
+- "I have 400 yards of DK yarn. Find an easy free knitted hat that fits."
+- "Find a free crochet amigurumi pattern written in French."
+- "This pattern calls for a discontinued yarn, what do other knitters use instead?"
+- "Compare three well-rated superwash merino DK yarns."
+- "Are there yarn shops within 5 km of the Louvre?"
 
-### Development Mode
+## Get Ravelry API credentials
+
+The server uses Ravelry's **read-only basic-auth API keys**, not your Ravelry login:
+
+1. Sign in at <https://www.ravelry.com/pro/developer>.
+2. Create an app and choose **basic auth** with read-only access.
+3. Copy the generated **username** and **password**.
+
+## Install
+
+Requires Node.js 22 or later.
+
+### Claude Desktop: one-click bundle (recommended)
 
 ```bash
-npm run dev
+npm install
+npm run pack:mcpb
 ```
 
-This starts the MCP server in development mode with hot reload.
+Then double-click the generated `ravelry-mcp.mcpb` (or drag it onto Claude Desktop's **Settings → Extensions** page). Claude Desktop asks for the API username and password and stores the password securely.
 
-### Production Mode
+### Any MCP client: build and point at `dist/index.js`
 
 ```bash
+git clone https://github.com/gpaul-mcp/MCP_ravelry.git
+cd MCP_ravelry
+npm install
 npm run build
-npm start
 ```
 
-Or use the shorthand:
+**Claude Code**
 
 ```bash
-npm run prod
+claude mcp add ravelry -e RAVELRY_USERNAME=your-api-username -e RAVELRY_PASSWORD=your-api-password -- node /absolute/path/to/MCP_ravelry/dist/index.js
 ```
 
-## 🔗 Integrating with Claude Desktop
+**Claude Desktop** (`claude_desktop_config.json`)
 
-To add this MCP server to Claude Desktop and enable Ravelry browsing capabilities:
+```json
+{
+  "mcpServers": {
+    "ravelry": {
+      "command": "node",
+      "args": ["/absolute/path/to/MCP_ravelry/dist/index.js"],
+      "env": {
+        "RAVELRY_USERNAME": "your-api-username",
+        "RAVELRY_PASSWORD": "your-api-password"
+      }
+    }
+  }
+}
+```
 
-1. **Start the MCP server**
-   Make sure your server is running locally or on a remote host that Claude Desktop can access.
+**VS Code** (`.vscode/mcp.json`, prompts for the password instead of storing it in the file)
 
-2. **Open Claude Desktop settings**
-   - Launch Claude Desktop
-   - Click on your profile picture or icon in the top right
-   - Select "Settings" from the dropdown menu
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "ravelry-password",
+      "description": "Ravelry API password",
+      "password": true
+    }
+  ],
+  "servers": {
+    "ravelry": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/absolute/path/to/MCP_ravelry/dist/index.js"],
+      "env": {
+        "RAVELRY_USERNAME": "your-api-username",
+        "RAVELRY_PASSWORD": "${input:ravelry-password}"
+      }
+    }
+  }
+}
+```
 
-3. **Navigate to Extensions settings**
-   - In the Settings sidebar, click on "Extensions"
-   - Select "Add Custom MCP"
+## Configuration
 
-4.1 **Configure the MCP connection**
-   - Name: `Ravelry MCP` (or any name you prefer)
-   - URL: Enter the URL where your MCP server is running (e.g., `http://localhost:3000` for local development)
-   - Click "Add MCP"
+All configuration comes from environment variables. For local development you can put them in a `.env` file (see [`.env.example`](.env.example)); it is git-ignored.
 
-4.2 **Alternative: Configure the MCP connection via command**
-   - You first need to build the project and provide your full path to the compiled server
-   - Add the following to your Claude Desktop configuration:
+| Variable                | Default     | Description                                                              |
+| ----------------------- | ----------- | ------------------------------------------------------------------------ |
+| `RAVELRY_USERNAME`      | (required)  | Read-only API username (`AUTH_USER` is still accepted).                  |
+| `RAVELRY_PASSWORD`      | (required)  | Read-only API password (`AUTH_PASS` is still accepted).                  |
+| `MCP_TRANSPORT`         | `stdio`     | `stdio`, or `http` to serve Streamable HTTP at `/mcp`.                   |
+| `HOST`                  | `127.0.0.1` | HTTP mode bind address.                                                  |
+| `PORT`                  | `3000`      | HTTP mode port.                                                          |
+| `RAVELRY_TIMEOUT_MS`    | `15000`     | Timeout for each Ravelry API request.                                    |
+| `MCP_ALLOWED_HOSTS`     | (none)      | HTTP mode: public hostnames accepted besides localhost, comma-separated. |
+| `MCP_URL_SECRET`        | (none)      | HTTP mode: serve at `/mcp/<secret>` instead of `/mcp` (16+ characters).  |
+| `RATE_LIMIT_PER_MINUTE` | `60`        | HTTP mode: requests per client per minute; `0` disables.                 |
+| `TRUST_PROXY`           | `false`     | HTTP mode: identify clients by `CF-Connecting-IP` / `X-Forwarded-For`.   |
 
-   ```json
-   "ravelry": {
-     "command": "node",
-     "args": [
-       "YOUR_CUSTOM_PATH/dist/index.js"
-     ]
-   }
-   ```
+### HTTP mode and hosting
 
-5. **Enable the MCP**
-   - Toggle the switch next to your newly added Ravelry MCP to enable it
-   - Claude Desktop will attempt to connect to your MCP server
+`MCP_TRANSPORT=http npm start` serves Streamable HTTP at `http://127.0.0.1:3000/mcp`, plus `GET /health`. `Host` and `Origin` headers must be localhost or one of `MCP_ALLOWED_HOSTS` (protection against DNS rebinding).
 
-6. **Verify connection**
-   - Start a new conversation with Claude
-   - Type "Can you help me find some knitting patterns on Ravelry?"
-   - Claude should now be able to use the Ravelry tools to search and browse patterns
+To share the server so people can add it to Claude or ChatGPT by URL, follow **[Self-hosting with Cloudflare Tunnel](docs/self-hosting.md)**: a Docker Compose setup that runs it on your own machine for free.
 
-7. **Troubleshooting**
-   - If Claude cannot connect to your MCP server, check that:
-     - The server is running and accessible from Claude Desktop
-     - The correct URL is configured in Claude Desktop settings
-     - Your API credentials are valid and properly configured in the server
+### Prompts
 
-### Usage Examples with Claude
+The server also provides conversation starters, which clients show as prompts or slash commands: **Find a pattern**, **Substitute a yarn**, **What can I make with this yarn?** and **Yarn shops near me**.
 
-Once connected, you can ask Claude to:
+## Development
 
-- "Find me some free crochet hat patterns on Ravelry"
-- "Search for knitting patterns for socks"
-- "Get more details about pattern ID 12345"
-- "Find patterns that are suitable for beginners"
+```bash
+npm run dev        # run from source with auto-restart (Node runs the TypeScript directly)
+npm run inspect    # build and open the MCP Inspector against the server
+npm run check      # typecheck + lint + tests
+npm run smoke      # after `npm run build`: live end-to-end test against the real Ravelry API
+```
 
-## 🧠 Available Tools
+| Script              | Purpose                                                    |
+| ------------------- | ---------------------------------------------------------- |
+| `npm run build`     | Compile to `dist/` with `tsc`.                             |
+| `npm start`         | Run the compiled server.                                   |
+| `npm test`          | Vitest suite: drives the server through a real MCP client. |
+| `npm run lint`      | ESLint (type-checked rules) + Prettier check.              |
+| `npm run lint:fix`  | Auto-fix lint and formatting.                              |
+| `npm run pack:mcpb` | Build a Claude Desktop bundle (`ravelry-mcp.mcpb`).        |
 
-The server exposes several tools that can be used by AI assistants:
+A Husky pre-commit hook runs lint-staged, the typecheck and the tests. CI runs the same checks on Node 22 and 24.
 
-### `search-patterns`
-Searches for patterns based on query parameters.
-
-**Parameters:**
-- `query`: Search term (required)
-- `page`: Page number for pagination (default: 1)
-- `craft`: Craft type (e.g., "knitting", "crochet")
-- `availability`: Price filter (default: "free", options: "free", "ravelry", "online")
-
-### `get-pattern-details`
-Retrieves detailed information for a specific pattern.
-
-**Parameters:**
-- `id`: Pattern ID (required)
-
-### `get-multiple-pattern-details`
-Retrieves details for multiple patterns at once.
-
-**Parameters:**
-- `ids`: Array of pattern IDs (required)
-
-## 🔍 How It Works
-
-The server uses axios to make authenticated requests to the Ravelry API:
-
-1. Authenticates requests using Basic Auth with your Ravelry credentials
-2. Makes requests to various Ravelry API endpoints
-3. Parses and returns the data in a structured format
-4. Exposes endpoints as MCP tools that can be called by AI assistants
-
-## 🛠️ Project Structure
+### Project structure
 
 ```
 src/
-  ├── class/
-  │   └── ravelry.class.ts       # Main client for Ravelry API
-  ├── endpoints/
-  │   ├── getMultiplePatternDetails.ts  # Get details for multiple patterns
-  │   ├── getPatternDetails.ts         # Get details for a single pattern
-  │   ├── searchPatterns.ts           # Search for patterns
-  │   └── index.ts                    # Endpoint exports
-  ├── types/
-  │   ├── patternDetailed.d.ts       # Type definitions for detailed patterns
-  │   └── patternSimple.d.ts         # Type definitions for simple patterns
-  └── index.ts                      # Entry point and MCP server setup
+├── index.ts                    # Entry point: config, transport (stdio or HTTP), shutdown
+├── server.ts                   # createServer() factory: server info, instructions, tools
+├── config.ts                   # Environment variable parsing and validation (zod)
+├── http.ts                     # Streamable HTTP transport: host checks, URL secret, rate limit, /health
+├── rate-limit.ts               # Per-client request limiter
+├── prompts.ts                  # Conversation starters (MCP prompts)
+├── ravelry/
+│   ├── client.ts               # Ravelry API client (fetch, timeouts, cancellation, errors)
+│   ├── types.ts                # Ravelry API response types
+│   └── vocabulary.ts           # Verified filter values and category resolution
+└── tools/
+    ├── search-patterns.ts      # search_patterns tool
+    ├── get-pattern-details.ts  # get_pattern_details tool
+    ├── yarns.ts                # search_yarns and get_yarn_details tools
+    ├── find-yarns-for-pattern.ts # find_yarns_for_pattern tool
+    ├── find-yarn-shops.ts      # find_yarn_shops tool
+    └── format.ts               # Shared formatting helpers
+test/                           # Vitest tests (in-process MCP client, mocked Ravelry API)
+scripts/
+├── smoke.ts                    # Live end-to-end check over stdio
+└── pack-mcpb.ts                # MCP Bundle packaging
+manifest.json                   # MCP Bundle manifest
 ```
 
-## ⚙️ Development
+### Adding a tool
 
-### Environment Configuration
+1. Create `src/tools/<name>.ts` exporting `register<Name>(server, ravelry)` that calls `server.registerTool()` with a `title`, a `description` written for the model, a zod `inputSchema` (use `.describe()` on every field), an `outputSchema`, and `annotations`.
+2. Register it in `src/server.ts` and list it in `manifest.json`.
+3. Add a test in `test/server.test.ts`.
 
-The server uses different environment files for development and production:
-- `.env.development` - Used when running in development mode
-- `.env.production` - Used when running in production mode
+## License
 
-### Testing
-
-Run the test suite with:
-
-```bash
-npm test
-```
-
-### Linting and Formatting
-
-```bash
-# Run ESLint
-npm run lint
-
-# Fix ESLint errors
-npm run lint:fix
-
-# Format code with Prettier
-npm run format
-```
-
-## 📝 Notes for Deployment
-
-When deploying to production:
-
-1. Ensure your `.env.production` file contains valid Ravelry credentials
-2. The build process will embed these credentials in the compiled code
-3. Use `npm run prod` to build and start the production server
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT, see [LICENSE](LICENSE).

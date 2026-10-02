@@ -1,47 +1,26 @@
 # Dependencies
 node_modules/
 
-# Build
+# Build output
 dist/
-build/
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment
-.env
-.env.local
-.env.development
-.env.production
-.env.*.local
-
-# Testing
 coverage/
+.mcpb-build/
+*.mcpb
 
-# IDE
+# Environment (credentials)
+.env
+.env.*
+!.env.example
+
+# Logs & caches
+*.log
+.eslintcache
+
+# Editors & OS
 .idea/
 .vscode/*
 !.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
 !.vscode/extensions.json
-
-# OS
 .DS_Store
 Thumbs.db
 desktop.ini
-
-# Windows
-*.lnk
-
-# ESLint
-.eslintcache
-
-# Temp files
-*.swp
-*.swo
-*~

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/dist/mcpb-manifest.schema.json",
+  "manifest_version": "0.3",
+  "name": "ravelry-mcp",
+  "display_name": "Ravelry",
+  "version": "2.1.0",
+  "description": "Find knitting and crochet patterns, yarns, yarn substitutes and local yarn shops on Ravelry.",
+  "long_description": "Lets Claude search Ravelry patterns by category, yarn weight, yardage, difficulty, fit, language and designer; read full pattern details (yarn, gauge, needles, sizes, notes); search yarns by weight, fiber and attributes; find the yarns other knitters actually used for a pattern; and find local yarn shops. Requires a free read-only API key pair from https://www.ravelry.com/pro/developer.",
+  "author": {
+    "name": "Gpaul | Faldin",
+    "url": "https://github.com/gpaul-faldin"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gpaul-mcp/MCP_ravelry.git"
+  },
+  "homepage": "https://github.com/gpaul-mcp/MCP_ravelry",
+  "support": "https://github.com/gpaul-mcp/MCP_ravelry/issues",
+  "license": "MIT",
+  "keywords": ["ravelry", "knitting", "crochet", "patterns", "yarn", "yarn shops"],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "RAVELRY_USERNAME": "${user_config.ravelry_username}",
+        "RAVELRY_PASSWORD": "${user_config.ravelry_password}"
+      }
+    }
+  },
+  "user_config": {
+    "ravelry_username": {
+      "type": "string",
+      "title": "Ravelry API username",
+      "description": "The \"username\" of a read-only (basic auth) app created at https://www.ravelry.com/pro/developer. This is not your Ravelry login.",
+      "required": true
+    },
+    "ravelry_password": {
+      "type": "string",
+      "title": "Ravelry API password",
+      "description": "The \"password\" of the same read-only app.",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "tools": [
+    {
+      "name": "search_patterns",
+      "description": "Search patterns by keyword, category, yarn weight, yardage, difficulty, fit, language, designer and price."
+    },
+    {
+      "name": "get_pattern_details",
+      "description": "Yarn, gauge, needles, sizes and notes for up to 20 patterns at once."
+    },
+    {
+      "name": "search_yarns",
+      "description": "Search yarns by name, weight, fiber and attributes such as superwash or hand-dyed."
+    },
+    {
+      "name": "get_yarn_details",
+      "description": "Fiber content, needles, gauge, care and origin for up to 20 yarns."
+    },
+    {
+      "name": "find_yarns_for_pattern",
+      "description": "Yarn substitution: the yarns other knitters used for a pattern, most used first."
+    },
+    {
+      "name": "find_yarn_shops",
+      "description": "Find local yarn shops near a location or by name or city."
+    }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=22.0.0"
+    }
+  }
+}
