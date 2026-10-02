@@ -2,7 +2,7 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI assistants search for, explore and compare knitting and crochet patterns on [Ravelry](https://www.ravelry.com).
 
-[![CI](https://github.com/gpaul-faldin/MCP_ravelry/actions/workflows/ci.yml/badge.svg)](https://github.com/gpaul-faldin/MCP_ravelry/actions/workflows/ci.yml)
+[![CI](https://github.com/gpaul-mcp/MCP_ravelry/actions/workflows/ci.yml/badge.svg)](https://github.com/gpaul-mcp/MCP_ravelry/actions/workflows/ci.yml)
 [![MCP SDK v2](https://img.shields.io/badge/MCP_SDK-v2-blue)](https://ts.sdk.modelcontextprotocol.io/v2/)
 [![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 
@@ -65,7 +65,7 @@ Then double-click the generated `ravelry-mcp.mcpb` (or drag it onto Claude Deskt
 ### Any MCP client: build and point at `dist/index.js`
 
 ```bash
-git clone https://github.com/gpaul-faldin/MCP_ravelry.git
+git clone https://github.com/gpaul-mcp/MCP_ravelry.git
 cd MCP_ravelry
 npm install
 npm run build

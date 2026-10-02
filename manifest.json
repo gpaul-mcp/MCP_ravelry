@@ -12,10 +12,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/gpaul-faldin/MCP_ravelry.git"
+    "url": "https://github.com/gpaul-mcp/MCP_ravelry.git"
   },
-  "homepage": "https://github.com/gpaul-faldin/MCP_ravelry",
-  "support": "https://github.com/gpaul-faldin/MCP_ravelry/issues",
+  "homepage": "https://github.com/gpaul-mcp/MCP_ravelry",
+  "support": "https://github.com/gpaul-mcp/MCP_ravelry/issues",
   "license": "MIT",
   "keywords": ["ravelry", "knitting", "crochet", "patterns", "yarn", "yarn shops"],
   "server": {
