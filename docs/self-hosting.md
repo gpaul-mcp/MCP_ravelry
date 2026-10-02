@@ -30,12 +30,12 @@ Fill in `.env`:
 RAVELRY_USERNAME=your-api-username
 RAVELRY_PASSWORD=your-api-password
 MCP_ALLOWED_HOSTS=ravelry.example.com
-MCP_URL_SECRET=<the random string from the command above>
+MCP_URL_SECRET=<the random string from the command above, or leave out for a public instance>
 RATE_LIMIT_PER_MINUTE=60
 CLOUDFLARE_TUNNEL_TOKEN=<the tunnel token>
 ```
 
-`MCP_URL_SECRET` keeps the endpoint unlisted: only people you give the full URL to can use it. The rate limit is per user (by their IP, from Cloudflare's `CF-Connecting-IP` header) and protects your Ravelry quota.
+`MCP_URL_SECRET` is optional. With it, the endpoint is unlisted: only people you give the full URL to can use it. Leave it out to run a public instance at `/mcp` that you can advertise. The rate limit is per user (by their IP, from Cloudflare's `CF-Connecting-IP` header) and protects your Ravelry quota.
 
 ## 3. Start
 
@@ -54,7 +54,7 @@ curl https://ravelry.example.com/health
 
 ## 4. Connect Claude or ChatGPT
 
-The server URL is `https://ravelry.example.com/mcp/<MCP_URL_SECRET>`; it needs no login.
+The server URL is `https://ravelry.example.com/mcp` (or `/mcp/<MCP_URL_SECRET>` if you set a secret); it needs no login. Opening `https://ravelry.example.com/` in a browser shows a page with the URL to use.
 
 - **Claude:** Settings → Connectors → Add custom connector, paste the URL.
 - **ChatGPT:** add it as a custom MCP connector/app (in developer mode), with no authentication.
