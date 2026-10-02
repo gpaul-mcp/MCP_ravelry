@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.3.0
+
+### Added
+
+- Calculators: `adjust_for_gauge` (swatch vs pattern gauge, needle advice, size as written, recalculated counts rounded to the stitch repeat), `spread_evenly` (even increases/decreases, knitting or crochet, flat or round), `yarn_needed` (skeins to buy with a margin) and `count_stitches` (reads written rows and repeats, checks every stitch count).
+- `crafting_reference`: needle and hook sizes (metric/US/UK/Japanese, from Ravelry), yarn weights across regions, US↔UK crochet and knitting terms, abbreviations.
+- `search_patterns`: `attributes` filter for techniques and construction (229 Ravelry pattern attributes, each checked against the live API), all or any of them; `fit` gains petite, plus, tall, maternity, fitted, oversized, miniature and the three ease values.
+- `get_pattern_details`: `gauge_per_10cm`, crochet `terminology` (US/UK) and `attributes`.
+- Prompts: Read me this row, Chart ↔ written instructions, Find a pattern from a photo, Fix my knitting or crochet problem.
+
 ## 2.2.0
 
 ### Added

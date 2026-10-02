@@ -74,10 +74,10 @@ What the server stores: your Ravelry username and its Ravelry sign-in tokens, en
 
 ### Patterns
 
-| Tool                  | What it does                                                                                                                                                                                                                                                                                                                                          |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `search_patterns`     | Search by keyword plus filters: `craft`, `category` (plain words like "hat", "toys" or "jumper" are mapped to Ravelry's categories), yarn `weight`, `yardage_min`/`yardage_max`, `difficulty_max`, `fit` (baby, child, adult...), `language`, `designer`, `availability` (`free` _(default)_, `ravelry`, `online`, `inprint`, `any`), `sort`, paging. |
-| `get_pattern_details` | Full details for 1–20 patterns: designer, price, difficulty, rating, yarn weight, yardage, gauge, needle/hook sizes, sizes, languages, photo and designer notes.                                                                                                                                                                                      |
+| Tool                  | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `search_patterns`     | Search by keyword plus filters: `craft`, `category` (plain words like "hat", "toys" or "jumper" are mapped to Ravelry's categories), yarn `weight`, `yardage_min`/`yardage_max`, `difficulty_max`, `fit` (baby, child, adult, petite, plus, negative ease...), `attributes` (techniques and construction in plain words: "top down", "raglan", "cables", "Fair Isle", "toe up", "granny square"... all of them or any of them), `language`, `designer`, `availability` (`free` _(default)_, `ravelry`, `online`, `inprint`, `any`), `sort`, paging. |
+| `get_pattern_details` | Full details for 1–20 patterns: designer, price, difficulty, rating, yarn weight, yardage, gauge (also as numbers per 10 cm), needle/hook sizes, sizes, techniques, crochet terminology (US or UK), languages, photo and designer notes.                                                                                                                                                                                                                                                                                                            |
 
 ### Yarns
 
@@ -87,6 +87,20 @@ What the server stores: your Ravelry username and its Ravelry sign-in tokens, en
 | `get_yarn_details`       | For 1–20 yarns: fiber content, yards and grams per skein, recommended needles and hooks, gauge, care, texture, color/dye attributes, where it was made, and notes.                                                   |
 | `find_yarns_for_pattern` | Yarn substitution: the yarns other Ravelry users actually used for a pattern, ranked by how many projects used each, next to the weight, yardage and gauge the pattern calls for and the designer's suggested yarns. |
 | `match_yarns`            | Matches what was read from a ball band, receipt or invoice (brand, name, weight, fiber, yards/grams per skein) to Ravelry yarns, with a confidence level, the reasons and alternatives.                              |
+
+### Calculators and reference
+
+The assistant uses these instead of doing knitting arithmetic in its head, so the numbers are right and it can focus on explaining.
+
+| Tool                 | What it does                                                                                                                                                                                                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adjust_for_gauge`   | Your swatch vs the pattern gauge (typed in, or read from a Ravelry pattern): change needles or not, how big the piece comes out as written, and the pattern's numbers recalculated for your gauge, rounded to the stitch repeat. |
+| `spread_evenly`      | "Increase 13 evenly across 97" → `[k8, M1] 6 times, [k7, M1] 7 times`. Knitting or crochet, flat or in the round.                                                                                                                |
+| `yarn_needed`        | Skeins to buy for a pattern (smallest and largest size) in a given yarn, with a safety margin; warns when the yarn weight differs.                                                                                               |
+| `count_stitches`     | Reads written rows (`*k2, p2; rep from * to last 2 sts, k2`, `(sc, inc) x 6 (18)`) and counts what each step uses and makes; flags rows that don't add up and counts that differ from the pattern's.                             |
+| `crafting_reference` | Needle and hook sizes (metric, US, UK, Japanese), yarn weights across regions (US worsted = UK aran = AU 10 ply), US↔UK crochet and knitting terms, and standard abbreviations.                                                  |
+
+Starters: **Read me this row**, **Chart ↔ written instructions**, **Find a pattern from a photo** and **Fix my knitting or crochet problem**.
 
 ### Shops
 
@@ -142,6 +156,9 @@ Example prompts:
 - "This pattern calls for a discontinued yarn, what do other knitters use instead?"
 - "Compare three well-rated superwash merino DK yarns."
 - "Are there yarn shops within 5 km of the Louvre?"
+- "My swatch is 24 stitches per 10 cm but Musselburgh wants 6 per inch. What do I cast on?"
+- "Check this round for me: (2 sc, inc) x 6 (24)."
+- "This UK pattern says htr. What is that in US terms?"
 
 ## Run it yourself
 

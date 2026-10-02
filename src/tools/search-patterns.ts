@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod';
 
+import { resolveAttribute } from '../ravelry/attributes.ts';
 import type { RavelryClient } from '../ravelry/client.ts';
 import type { ApiPatternListItem } from '../ravelry/types.ts';
 import {
@@ -62,7 +63,25 @@ const inputSchema = z
       .min(1)
       .max(4)
       .optional()
-      .describe('Who it is sized for (any of them matches).'),
+      .describe(
+        'Who it is sized for, or how it fits: "petite", "plus", "tall", "maternity", ' +
+          '"negative-ease", "oversized"... (any of them matches).',
+      ),
+    attributes: z
+      .array(z.string().trim().min(2).max(50))
+      .min(1)
+      .max(6)
+      .optional()
+      .describe(
+        'Techniques and construction, in plain words: "top down", "seamless", "raglan", ' +
+          '"cables", "stranded", "lace", "brioche", "toe up", "heel flap", "granny square", ' +
+          '"tunisian", "chart", "written", "video tutorial", "Fair Isle", "v neck", "pockets"... ' +
+          'Mapped to Ravelry pattern attributes.',
+      ),
+    attribute_match: z
+      .enum(['all', 'any'])
+      .default('all')
+      .describe('Whether patterns need all the attributes (default) or any of them.'),
     language: z
       .enum(LANGUAGE_CODES)
       .optional()
@@ -121,6 +140,9 @@ export function toPatternSummary(
 const outputSchema = z.object({
   patterns: z.array(patternSummarySchema),
   category: z.string().nullable().describe('The Ravelry category the search was filtered to.'),
+  attributes: z
+    .array(z.string())
+    .describe('The Ravelry attributes the search was filtered to, by name.'),
   page: z.number(),
   page_count: z.number(),
   total_results: z.number(),
@@ -135,7 +157,8 @@ export function registerSearchPatterns(server: McpServer, ravelry: RavelryClient
       title: 'Search Ravelry patterns',
       description:
         'Search the Ravelry pattern database by keyword and filters: craft, category, yarn ' +
-        'weight, yardage, difficulty, fit, language, designer and price. Returns a page of ' +
+        'weight, yardage, difficulty, fit, techniques and construction (attributes), language, ' +
+        'designer and price. Returns a page of ' +
         'matches; call get_pattern_details with the ids for yarn, gauge, needles and notes.',
       inputSchema,
       outputSchema,
@@ -147,6 +170,7 @@ export function registerSearchPatterns(server: McpServer, ravelry: RavelryClient
       const category = input.category
         ? resolveCategory(input.category, await ravelry.getPatternCategories(signal))
         : undefined;
+      const attributes = (input.attributes ?? []).map(resolveAttribute);
 
       const response = await ravelry.searchPatterns(
         {
@@ -157,6 +181,10 @@ export function registerSearchPatterns(server: McpServer, ravelry: RavelryClient
           yardage: range(input.yardage_min, input.yardage_max),
           diff: range(undefined, input.difficulty_max),
           fit: input.fit,
+          // Ravelry reads "a+b" as all of them and "a|b" as any of them.
+          pa: attributes.length
+            ? attributes.map(a => a.permalink).join(input.attribute_match === 'all' ? '+' : '|')
+            : undefined,
           language: input.language,
           designer: input.designer,
           availability: input.availability === 'any' ? undefined : input.availability,
@@ -170,6 +198,7 @@ export function registerSearchPatterns(server: McpServer, ravelry: RavelryClient
       const output: SearchOutput = {
         patterns: response.patterns.map(toPatternSummary),
         category: category ?? null,
+        attributes: attributes.map(a => a.name),
         page: response.paginator.page,
         page_count: response.paginator.page_count,
         total_results: response.paginator.results,

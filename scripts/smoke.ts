@@ -116,6 +116,71 @@ try {
       shops.shops.map(s => `${s.name} (${s.distance} km)`).join(', '),
   );
 
+  const techniques = await call<{ attributes: string[]; total_results: number; patterns: Named[] }>(
+    'search_patterns',
+    { category: 'sweater', attributes: ['top down', 'raglan', 'cables'], page_size: 3 },
+  );
+  console.log(
+    `search_patterns: ${techniques.attributes.join(' + ')} sweaters: ` +
+      `${techniques.total_results} results, first: ${techniques.patterns[0]?.name ?? 'none'}`,
+  );
+  const fits = await call<{ total_results: number }>('search_patterns', {
+    fit: ['petite', 'negative-ease'],
+    page_size: 1,
+  });
+  console.log(`search_patterns: petite or negative ease: ${fits.total_results} results`);
+
+  const musselburgh = await call<{
+    patterns: { gauge_per_10cm: unknown; terminology: string | null; attributes: string[] }[];
+  }>('get_pattern_details', { ids: [990044] });
+  console.log('get_pattern_details (Musselburgh):', JSON.stringify(musselburgh.patterns[0]));
+
+  const gauge = await call<{ verdict: string; adjusted_counts: unknown[]; needle_advice: string }>(
+    'adjust_for_gauge',
+    {
+      pattern_id: 990044,
+      my_gauge: { stitches: 26, rows: 36, over: 10, unit: 'cm' },
+      counts: [{ label: 'cast on', stitches: 120 }],
+      stitch_multiple: { of: 4 },
+    },
+  );
+  console.log(
+    `adjust_for_gauge: ${gauge.verdict}, ${JSON.stringify(gauge.adjusted_counts)} — ` +
+      gauge.needle_advice,
+  );
+
+  const needed = await call<{ options: unknown[]; notes: string[] }>('yarn_needed', {
+    pattern_id: 990044,
+    yarn_id: ideas.yarns[0]?.id,
+  });
+  console.log(`yarn_needed: ${JSON.stringify(needed.options)} ${needed.notes.join(' ')}`);
+
+  const spread = await call<{ instructions: string }>('spread_evenly', {
+    stitches: 97,
+    change: 13,
+    worked: 'round',
+  });
+  console.log(`spread_evenly: ${spread.instructions}`);
+
+  const counted = await call<{ rows: { stitches_after: number | null }[]; problems: number }>(
+    'count_stitches',
+    { rows: ['*k2, p2; rep from * to end', 'k1, m1l, k to last st, m1r, k1'], stitches_before: 96 },
+  );
+  console.log(
+    `count_stitches: ${counted.rows.map(r => r.stitches_after).join(' → ')}, ` +
+      `${counted.problems} problems`,
+  );
+
+  for (const [topic, lookup] of [
+    ['needles_and_hooks', '4mm'],
+    ['yarn_weights', 'dk'],
+    ['crochet_terms', 'hdc'],
+    ['abbreviations', 'ssk'],
+  ] as const) {
+    const reference = await call<{ rows: unknown[] }>('crafting_reference', { topic, lookup });
+    console.log(`crafting_reference ${topic} "${lookup}":`, JSON.stringify(reference.rows));
+  }
+
   console.log('smoke test passed');
 } finally {
   await client.close();

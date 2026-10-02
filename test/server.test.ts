@@ -82,6 +82,9 @@ describe('ravelry MCP server', () => {
     const { tools } = await client.listTools();
 
     expect(tools.map(tool => tool.name).sort()).toEqual([
+      'adjust_for_gauge',
+      'count_stitches',
+      'crafting_reference',
       'find_yarn_shops',
       'find_yarns_for_pattern',
       'get_pattern_details',
@@ -89,9 +92,16 @@ describe('ravelry MCP server', () => {
       'match_yarns',
       'search_patterns',
       'search_yarns',
+      'spread_evenly',
+      'yarn_needed',
     ]);
+    // Pure calculators never reach Ravelry; every other tool does.
+    const offline = ['count_stitches', 'spread_evenly'];
     for (const tool of tools) {
-      expect(tool.annotations).toMatchObject({ readOnlyHint: true, openWorldHint: true });
+      expect(tool.annotations).toMatchObject({
+        readOnlyHint: true,
+        openWorldHint: !offline.includes(tool.name),
+      });
       expect(tool.outputSchema).toBeDefined();
     }
   });
@@ -117,6 +127,7 @@ describe('ravelry MCP server', () => {
         },
       ],
       category: null,
+      attributes: [],
       page: 1,
       page_count: 3,
       total_results: 55,
