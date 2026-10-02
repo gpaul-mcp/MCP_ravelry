@@ -7,6 +7,9 @@
 - **Sign in with Ravelry** at `/account/mcp`: an OAuth-protected MCP endpoint (MCP authorization spec) where users connect their own Ravelry account. Built on oidc-provider with dynamic client registration, mandatory PKCE, RFC 8707 resource-bound tokens, refresh tokens, and a consent page for every new client. Ravelry tokens stay on the server and are refreshed automatically.
 - Personal tools: `get_my_crafting_profile`, `get_my_stash`, `get_my_queue`, `get_my_projects`, `get_my_favorites`, `search_my_library`, `find_patterns_for_my_stash`, `pick_from_my_queue`; prompts "What should I make next?" and "Use up my stash".
 - Encrypted SQLite storage (hashed keys, AES-256-GCM records) in a `ravelry-data` Docker volume.
+- `match_yarns`: matches yarn read from a ball band, receipt or invoice to Ravelry yarns, scored on name, weight, yardage, grams and fiber with a confidence level.
+- `add_to_my_stash` and `add_to_my_queue` (new `ravelry:write` scope, additive only, duplicates skipped) and an "Add yarn to my stash from a photo" prompt.
+- Interactive cards (MCP Apps): pattern, yarn, stash, queue, receipt-match, shop and profile views rendered in the chat, built with Vite into a single HTML resource.
 - New settings: `RAVELRY_OAUTH_CLIENT_ID`, `RAVELRY_OAUTH_CLIENT_SECRET`, `PUBLIC_URL`, `AUTH_SECRET`, `DATA_DIR`.
 
 ## 2.1.1

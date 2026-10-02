@@ -64,6 +64,7 @@ const queue: ApiQueueResponse = {
 };
 
 const queuedPatterns: Record<string, ApiPattern> = {
+  '502': { id: 502, name: 'New Cowl', permalink: 'new-cowl', free: true },
   '500': {
     id: 500,
     name: 'Big Sweater',
@@ -117,8 +118,32 @@ function route(url: URL, init: RequestInit | undefined): Response {
       return jsonResponse({ user: { id: 42, username: 'knitter' } });
     case '/people/knitter/stash/list.json':
       return jsonResponse(stash);
-    case '/people/knitter/queue/list.json':
-      return jsonResponse(queue);
+    case '/people/knitter/queue/list.json': {
+      const patternId = url.searchParams.get('pattern_id');
+      const items = queue.queued_projects.filter(
+        item => !patternId || String(item.pattern_id) === patternId,
+      );
+      return jsonResponse({
+        ...queue,
+        queued_projects: items,
+        paginator: { ...queue.paginator, results: items.length },
+      });
+    }
+    case '/people/knitter/stash/create.json': {
+      const body = JSON.parse(init?.body as string) as {
+        pack?: { colorway?: string; personal_name?: string };
+      };
+      return jsonResponse({
+        stash: {
+          id: 900,
+          permalink: 'new-yarn',
+          name: body.pack?.personal_name,
+          colorway_name: body.pack?.colorway,
+        },
+      });
+    }
+    case '/people/knitter/queue/create.json':
+      return jsonResponse({ queued_project: { id: 700 } });
     case '/patterns.json':
       return jsonResponse({ patterns: queuedPatterns });
     default:
@@ -305,7 +330,7 @@ describe('Sign in with Ravelry', () => {
     expect(resource).toMatchObject({
       resource: `${base}/account/mcp`,
       authorization_servers: [base],
-      scopes_supported: ['ravelry:read'],
+      scopes_supported: ['ravelry:read', 'ravelry:write'],
     });
 
     const metadata = (await (
@@ -360,6 +385,67 @@ describe('Sign in with Ravelry', () => {
       { pattern: 'Worsted Hat', verdict: 'planned_yarn_in_stash', yards_needed: '180–220' },
       { pattern: 'Big Sweater', verdict: 'need_yarn', shortfall_yards: 780 },
     ]);
+
+    // Adding from a receipt: the Teal Rios is already stashed, the hand-dyed skein is new.
+    const added = await client.callTool({
+      name: 'add_to_my_stash',
+      arguments: {
+        entries: [
+          { yarn_id: 7, colorway: 'teal', skeins: 2 },
+          {
+            yarn_name: 'Indie Sock',
+            weight: 'fingering',
+            colorway: 'Moss',
+            skeins: 1,
+            total_length: 400,
+            length_units: 'meters',
+            price_paid: 24.5,
+            currency: 'EUR',
+            purchased_date: '2026-10-01',
+          },
+        ],
+      },
+    });
+    expect(added.isError).toBeFalsy();
+    expect(added.structuredContent).toMatchObject({
+      added: [
+        {
+          stash_id: 900,
+          yarn: 'Indie Sock',
+          colorway: 'Moss',
+          url: 'https://www.ravelry.com/people/knitter/stash/new-yarn',
+        },
+      ],
+      skipped_duplicates: [{ index: 0, existing_stash_id: 1 }],
+      failed: [],
+    });
+    const createCall = ravelry.mock.calls.find(([input]) =>
+      (input as string).endsWith('/stash/create.json'),
+    );
+    expect(createCall?.[1]?.method).toBe('POST');
+    expect(JSON.parse(createCall?.[1]?.body as string)).toEqual({
+      stash_status_id: 1,
+      pack: {
+        personal_name: 'Indie Sock',
+        personal_yarn_weight_id: 5,
+        colorway: 'Moss',
+        skeins: '1',
+        total_length: '400',
+        length_units: 'meters',
+        purchased_date: '2026-10-01',
+        total_paid: '24.5',
+        total_paid_currency: 'EUR',
+      },
+    });
+
+    const queued = await client.callTool({
+      name: 'add_to_my_queue',
+      arguments: { items: [{ pattern_id: 501 }, { pattern_id: 502, notes: 'Gift for mum' }] },
+    });
+    expect(queued.structuredContent).toMatchObject({
+      added: [{ queued_id: 700, pattern_id: 502, pattern: 'New Cowl' }],
+      skipped_already_queued: [{ pattern_id: 501 }],
+    });
 
     // Personal calls went out with the user's token; the app key was never used for them.
     const personalCalls = ravelry.mock.calls.filter(([input]) =>

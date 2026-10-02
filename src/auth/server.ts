@@ -12,6 +12,8 @@ import { consentPage, errorPage } from './pages.ts';
 import type { RavelryOAuth } from './ravelry-oauth.ts';
 
 export const ACCOUNT_SCOPE = 'ravelry:read';
+/** Adding yarn to the stash and patterns to the queue. Never edits or deletes. */
+export const WRITE_SCOPE = 'ravelry:write';
 
 const LOGIN_TTL_MS = 10 * 60 * 1000;
 const DAY = 24 * 60 * 60;
@@ -169,6 +171,7 @@ export class AuthServer {
         consentPage({
           uid,
           clientName: client.clientName ?? 'An MCP client',
+          canWrite: requestedScopes(details).includes(WRITE_SCOPE),
           redirectHost: URL.parse(redirectUri)?.host ?? redirectUri,
           username: account.username,
         }),
@@ -260,7 +263,7 @@ export class AuthServer {
       cookies: { keys: keys.cookies },
       findAccount: (_ctx, id) => ({ accountId: id, claims: () => ({ sub: id }) }),
       // Listed here too: MCP clients send the resource scope when they register.
-      scopes: ['offline_access', ACCOUNT_SCOPE],
+      scopes: ['offline_access', ACCOUNT_SCOPE, WRITE_SCOPE],
       responseTypes: ['code'],
       pkce: { required: () => true },
       clientBasedCORS: () => true,
@@ -276,7 +279,11 @@ export class AuthServer {
           useGrantedResource: () => true,
           getResourceServerInfo: (_ctx, indicator) => {
             if (indicator.replace(/\/+$/, '') !== resourceUrl) throw new errors.InvalidTarget();
-            return { scope: ACCOUNT_SCOPE, accessTokenFormat: 'opaque', accessTokenTTL: 60 * 60 };
+            return {
+              scope: `${ACCOUNT_SCOPE} ${WRITE_SCOPE}`,
+              accessTokenFormat: 'opaque',
+              accessTokenTTL: 60 * 60,
+            };
           },
         },
       },
@@ -342,4 +349,19 @@ function sendHtml(res: ServerResponse, status: number, html: string): void {
         "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
     })
     .end(html);
+}
+
+/** Every scope the pending authorization asks for, OIDC- or resource-level. */
+function requestedScopes(details: Awaited<ReturnType<Provider['interactionDetails']>>): string[] {
+  const missing = details.prompt.details as {
+    missingOIDCScope?: string[];
+    missingResourceScopes?: Record<string, string[]>;
+  };
+  const fromParams =
+    typeof details.params.scope === 'string' ? details.params.scope.split(' ') : [];
+  return [
+    ...fromParams,
+    ...(missing.missingOIDCScope ?? []),
+    ...Object.values(missing.missingResourceScopes ?? {}).flat(),
+  ];
 }

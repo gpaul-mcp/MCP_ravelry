@@ -32,6 +32,7 @@ export function consentPage(options: {
   clientName: string;
   redirectHost: string;
   username: string;
+  canWrite: boolean;
 }): string {
   const action = `/oauth/interaction/${encodeURIComponent(options.uid)}`;
   return layout(
@@ -41,7 +42,13 @@ export function consentPage(options: {
 <p><strong>${escapeHtml(options.clientName)}</strong> wants to use the Ravelry MCP server with your Ravelry account <strong>${escapeHtml(options.username)}</strong>.</p>
 <p>It will be able to <strong>read</strong>:</p>
 <ul><li>your stash</li><li>your queue</li><li>your projects</li><li>your favorites</li><li>your library</li></ul>
-<p class="muted">It cannot change anything on Ravelry. After you allow access, you'll be sent to <strong>${escapeHtml(options.redirectHost)}</strong>. Only continue if you started this from an app you trust.</p>
+${
+  options.canWrite
+    ? `<p>and to <strong>add</strong> (when you ask it to):</p>
+<ul><li>yarn to your stash</li><li>patterns to your queue</li></ul>
+<p class="muted">It cannot edit or delete anything on Ravelry.`
+    : '<p class="muted">It cannot change anything on Ravelry.'
+} After you allow access, you'll be sent to <strong>${escapeHtml(options.redirectHost)}</strong>. Only continue if you started this from an app you trust.</p>
 <div class="actions">
 <form method="post" action="${action}/confirm"><button class="allow" type="submit">Allow</button></form>
 <form method="post" action="${action}/abort"><button class="deny" type="submit">Deny</button></form>

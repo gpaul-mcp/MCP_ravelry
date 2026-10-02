@@ -10,6 +10,7 @@ import {
   YARN_WEIGHTS,
 } from '../ravelry/vocabulary.ts';
 import { patternUrl, range } from './format.ts';
+import { VIEW_META } from '../view.ts';
 
 const inputSchema = z
   .object({
@@ -138,6 +139,7 @@ export function registerSearchPatterns(server: McpServer, ravelry: RavelryClient
         'matches; call get_pattern_details with the ids for yarn, gauge, needles and notes.',
       inputSchema,
       outputSchema,
+      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async (input, ctx) => {
