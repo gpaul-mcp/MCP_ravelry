@@ -1,6 +1,6 @@
 {
   "name": "ravelry-mcp",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "MCP server for searching and exploring knitting and crochet patterns on Ravelry",
   "license": "MIT",
   "author": "Gpaul | Faldin",
@@ -44,12 +44,14 @@
   "dependencies": {
     "@modelcontextprotocol/node": "^2.1.0",
     "@modelcontextprotocol/server": "^2.2.0",
+    "oidc-provider": "^9.12.2",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@modelcontextprotocol/client": "^2.2.0",
     "@types/node": "^24.19.1",
+    "@types/oidc-provider": "^9.12.1",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",

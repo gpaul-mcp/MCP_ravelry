@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 2.2.0
+
+### Added
+
+- **Sign in with Ravelry** at `/account/mcp`: an OAuth-protected MCP endpoint (MCP authorization spec) where users connect their own Ravelry account. Built on oidc-provider with dynamic client registration, mandatory PKCE, RFC 8707 resource-bound tokens, refresh tokens, and a consent page for every new client. Ravelry tokens stay on the server and are refreshed automatically.
+- Personal tools: `get_my_crafting_profile`, `get_my_stash`, `get_my_queue`, `get_my_projects`, `get_my_favorites`, `search_my_library`, `find_patterns_for_my_stash`, `pick_from_my_queue`; prompts "What should I make next?" and "Use up my stash".
+- Encrypted SQLite storage (hashed keys, AES-256-GCM records) in a `ravelry-data` Docker volume.
+- New settings: `RAVELRY_OAUTH_CLIENT_ID`, `RAVELRY_OAUTH_CLIENT_SECRET`, `PUBLIC_URL`, `AUTH_SECRET`, `DATA_DIR`.
+
+## 2.1.1
 
 - README: the hosted instance at `https://ravelry-mcp.gonz-paul.dev/mcp` comes first, with setup for Claude, ChatGPT, Claude Code, VS Code and Cursor; local installation moves to "Run it yourself".
 - Tool output: trims stray whitespace in shop details and rounds ratings/difficulty, found while testing the hosted instance.
