@@ -69,6 +69,8 @@ export function setupAccounts(options: AccountSetupOptions) {
 
   return {
     auth,
+    /** The signed-in accounts and their Ravelry tokens (for maintenance scripts). */
+    store: accounts,
     factory,
     resourceUrl,
     close: () => {

@@ -8,8 +8,11 @@ import type {
   ApiProjectsResponse,
   ApiQueueResponse,
   ApiShopSearchResponse,
+  ApiPack,
+  ApiProjectFull,
   ApiQueuedProject,
   ApiStash,
+  ApiStashFull,
   ApiStashListResponse,
   ApiYarn,
   ApiYarnSearchResponse,
@@ -178,12 +181,101 @@ export class RavelryClient {
     );
   }
 
-  /** GET, or POST with a JSON body when `body` is given. */
+  getStash(username: string, id: number, signal?: AbortSignal) {
+    return this.#request<{ stash: ApiStashFull }>(
+      `/people/${user(username)}/stash/${id}.json`,
+      {},
+      signal,
+    );
+  }
+
+  updateStash(username: string, id: number, data: Record<string, unknown>, signal?: AbortSignal) {
+    return this.#request<{ stash: ApiStashFull }>(
+      `/people/${user(username)}/stash/${id}.json`,
+      {},
+      signal,
+      data,
+    );
+  }
+
+  deleteStash(username: string, id: number, signal?: AbortSignal) {
+    return this.#request<{ stash: ApiStash }>(
+      `/people/${user(username)}/stash/${id}.json`,
+      {},
+      signal,
+      undefined,
+      'DELETE',
+    );
+  }
+
+  getProject(username: string, id: number, signal?: AbortSignal) {
+    return this.#request<{ project: ApiProjectFull }>(
+      `/projects/${user(username)}/${id}.json`,
+      {},
+      signal,
+    );
+  }
+
+  /** Creates a project; `data` is Ravelry's Project (POST) object, packs included. */
+  createProject(username: string, data: Record<string, unknown>, signal?: AbortSignal) {
+    return this.#request<{ project: ApiProjectFull }>(
+      `/projects/${user(username)}/create.json`,
+      {},
+      signal,
+      data,
+    );
+  }
+
+  updateProject(username: string, id: number, data: Record<string, unknown>, signal?: AbortSignal) {
+    return this.#request<{ project: ApiProjectFull }>(
+      `/projects/${user(username)}/${id}.json`,
+      {},
+      signal,
+      data,
+    );
+  }
+
+  deleteProject(username: string, id: number, signal?: AbortSignal) {
+    return this.#request<unknown>(
+      `/projects/${user(username)}/${id}.json`,
+      {},
+      signal,
+      undefined,
+      'DELETE',
+    );
+  }
+
+  /** Updates a pack. Ravelry documents PUT, but only POST works (PUT redirects in a loop). */
+  updatePack(id: number, data: Record<string, unknown>, signal?: AbortSignal) {
+    return this.#request<{ pack: ApiPack }>(`/packs/${id}.json`, {}, signal, data);
+  }
+
+  /** Links more stash yarn to an existing project (packs on create are passed with the project). */
+  createPack(data: Record<string, unknown>, signal?: AbortSignal) {
+    return this.#request<{ pack: ApiPack }>('/packs/create.json', {}, signal, data);
+  }
+
+  deletePack(id: number, signal?: AbortSignal) {
+    return this.#request<{ pack: ApiPack }>(`/packs/${id}.json`, {}, signal, undefined, 'DELETE');
+  }
+
+  deleteQueuedProject(username: string, id: number, signal?: AbortSignal) {
+    return this.#request<unknown>(
+      `/people/${user(username)}/queue/${id}.json`,
+      {},
+      signal,
+      undefined,
+      'DELETE',
+    );
+  }
+
+  /** GET by default, POST when `body` is given, or an explicit `method`. */
   async #request<T>(
     path: string,
     params: SearchParams,
     signal?: AbortSignal,
     body?: Record<string, unknown>,
+    method: 'GET' | 'POST' | 'DELETE' = body ? 'POST' : 'GET',
   ): Promise<T> {
     const search = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
@@ -204,7 +296,7 @@ export class RavelryClient {
     let response: Response;
     try {
       response = await this.#fetch(`${this.#baseUrl}${path}${query}`, {
-        method: body ? 'POST' : 'GET',
+        method,
         headers: {
           Accept: 'application/json',
           Authorization: authorization,
