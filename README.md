@@ -110,24 +110,30 @@ Starters: **Read me this row**, **Chart ↔ written instructions**, **Find a pat
 
 ### Your account (at `/account/mcp`, after signing in)
 
-| Tool                         | What it does                                                                                                                                                                             |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_my_crafting_profile`    | Who you are as a maker: crafts, what you make most, yarn weights you use, difficulty you handle (with an estimated level), stash and queue size, plus a short summary worth remembering. |
-| `get_my_stash`               | Your yarn with weight, colorway, skeins and total yards, and yards available per weight.                                                                                                 |
-| `get_my_queue`               | Your queued patterns with the yarn you planned for each.                                                                                                                                 |
-| `get_my_projects`            | Your projects: pattern, craft, status, progress, dates, your rating.                                                                                                                     |
-| `get_my_favorites`           | Your favorited patterns, yarns, designers…                                                                                                                                               |
-| `search_my_library`          | Patterns, books and magazines in your Ravelry library.                                                                                                                                   |
-| `find_patterns_for_my_stash` | Patterns that fit yarn you own: same weight, using 40–100 % of the yardage.                                                                                                              |
-| `pick_from_my_queue`         | Ranks your queue by what your stash already covers: planned yarn on hand, enough yarn of the right weight, or how many yards you're short.                                               |
-| `add_to_my_stash`            | Adds yarn to your stash (e.g. from a receipt photo) with colorway, dye lot, skeins, length, weight, price, shop and purchase date. Skips yarn already stashed.                           |
-| `add_to_my_queue`            | Queues patterns, optionally with the yarn you plan to use and a note. Skips patterns already queued.                                                                                     |
-| `get_my_project`             | One project: pattern, status, progress, the stash yarn it uses, and its progress log.                                                                                                    |
-| `start_project`              | Starts a project from a pattern (or a queued pattern, which leaves the queue) and sets stash yarn aside for it.                                                                          |
-| `log_project_progress`       | "Row 42 of the sleeve, used 1 skein": adds a dated line to the project's private log, sets the %, and records yarn used so far.                                                          |
-| `update_project_status`      | Finish (leftovers stay in the stash, empty yarn becomes used up), pause, resume or frog (yarn goes back).                                                                                |
-| `update_stash_entry`         | Fix colorway, dye lot, location, notes, status or the total owned.                                                                                                                       |
-| `remove_from_stash`          | Permanently delete stash entries (only when you ask; "used up" keeps the history).                                                                                                       |
+| Tool                         | What it does                                                                                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_my_crafting_profile`    | Who you are as a maker: crafts, what you make most, yarn weights you use, difficulty you handle (with an estimated level), stash and queue size, plus a short summary worth remembering.          |
+| `get_my_stash`               | Your yarn with weight, colorway, skeins and total yards, and yards available per weight.                                                                                                          |
+| `get_my_queue`               | Your queued patterns with the yarn you planned for each.                                                                                                                                          |
+| `get_my_projects`            | Your projects: pattern, craft, status, progress, dates, your rating.                                                                                                                              |
+| `get_my_favorites`           | Your favorited patterns, yarns, designers…                                                                                                                                                        |
+| `search_my_library`          | Patterns, books and magazines in your Ravelry library.                                                                                                                                            |
+| `find_patterns_for_my_stash` | Patterns that fit yarn you own: same weight, using 40–100 % of the yardage.                                                                                                                       |
+| `pick_from_my_queue`         | Ranks your queue by what your stash already covers: planned yarn on hand, enough yarn of the right weight, or how many yards you're short.                                                        |
+| `add_to_my_stash`            | Adds yarn to your stash (e.g. from a receipt photo) with colorway, dye lot, skeins, length, weight, price, shop and purchase date. Skips yarn already stashed.                                    |
+| `add_to_my_queue`            | Queues patterns, optionally with the yarn you plan to use and a note. Skips patterns already queued.                                                                                              |
+| `get_my_project`             | One project: pattern, status, progress, the stash yarn it uses, and its progress log.                                                                                                             |
+| `start_project`              | Starts a project from a pattern (or a queued pattern, which leaves the queue) and sets stash yarn aside for it.                                                                                   |
+| `log_project_progress`       | "Row 42 of the sleeve, used 1 skein": adds a dated line to the project's private log, sets the %, and records yarn used so far.                                                                   |
+| `update_project_status`      | Finish (leftovers stay in the stash, empty yarn becomes used up), pause, resume or frog (yarn goes back).                                                                                         |
+| `update_stash_entry`         | Fix colorway, dye lot, location, notes, status or the total owned.                                                                                                                                |
+| `remove_from_stash`          | Permanently delete stash entries (only when you ask; "used up" keeps the history).                                                                                                                |
+| `estimate_finish_date`       | "When will I finish?": from your own pace (yards a day over your recent finished projects), for a pattern or a project in progress; with a deadline, says if it's comfortable, tight or unlikely. |
+| `plan_yarn_shopping`         | Shopping list for queued or chosen patterns: what your stash already covers (each yard counted once) and what's left to buy per pattern and per weight, in skeins of the planned yarn when known. |
+| `review_my_queue`            | Queue tidy-up: duplicates, patterns you already made, entries waiting for years, and how long the whole queue would take at your pace. Suggests only; never removes anything.                     |
+| `audit_my_stash`             | Stash check-up: how long it would last at your pace, yarn no plan uses, the oldest yarn, weights you buy but rarely use, leftovers for scrap projects, entries missing information.               |
+| `discover_patterns_for_me`   | New patterns from your own taste (techniques, categories, designers in your favorites), or to learn a technique you haven't used yet, leaving out what you already favorited, queued or made.     |
+| `get_my_needles`             | Your needles and hooks; with a pattern, which sizes you have and what's missing (circulars or DPNs for patterns worked in the round).                                                             |
 
 Plus three extra starters: **What should I make next?**, **Use up my stash** and **Add yarn to my stash from a photo**.
 

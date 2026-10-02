@@ -27,6 +27,7 @@ export const stashEntrySchema = z.object({
     .describe('Projects using part of this yarn.'),
   status: z.string().nullable(),
   location: z.string().nullable(),
+  added: z.string().nullable().describe('Date the yarn was added to the stash.'),
 });
 
 export type StashEntry = z.infer<typeof stashEntrySchema>;
@@ -99,6 +100,9 @@ export function toStashEntry(stash: ApiStash | ApiStashFull): StashEntry {
     })),
     status: nonEmpty(status ?? null),
     location: nonEmpty(stash.location),
+    added: /^\d{4}[/-]\d{2}[/-]\d{2}/.test(stash.created_at ?? '')
+      ? (stash.created_at ?? '').slice(0, 10).replace(/\//g, '-')
+      : null,
   };
 }
 
@@ -126,6 +130,7 @@ export async function loadStash(
 
   const active = listed.filter(stash => !/used up/i.test(statusName(stash)));
   if (!freeAmounts) return active.map(toStashEntry);
+  const listedById = new Map(active.map(stash => [stash.id, stash]));
 
   const detailed = await mapLimit(active, DETAIL_CONCURRENCY, stash =>
     user.ravelry
@@ -136,7 +141,8 @@ export async function loadStash(
         return stash; // Fall back to the list data (total amounts).
       }),
   );
-  return detailed.map(toStashEntry);
+  // Keep list-only fields (e.g. created_at) when the full record lacks them.
+  return detailed.map(stash => toStashEntry({ ...listedById.get(stash.id), ...stash }));
 }
 
 function statusName(stash: ApiStash): string {
@@ -145,7 +151,7 @@ function statusName(stash: ApiStash): string {
   );
 }
 
-async function mapLimit<T, R>(
+export async function mapLimit<T, R>(
   items: readonly T[],
   limit: number,
   fn: (item: T) => Promise<R>,

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.4.0
+
+### Added
+
+Personal planning from the signed-in user's own Ravelry data (nothing new is stored):
+
+- `estimate_finish_date`: finish date from the user's pace (yards per day over recent finished projects), for a pattern or what is left of a project; deadline check.
+- `plan_yarn_shopping`: what to buy for chosen patterns after the stash (each free yard used once), per pattern and per weight.
+- `review_my_queue`: duplicates, patterns already made, long-waiting entries, time to finish the whole queue.
+- `audit_my_stash`: how long the stash lasts, unplanned yarn, oldest yarn, weights bought but rarely used, leftovers, missing information.
+- `discover_patterns_for_me`: patterns from the user's style profile, or to learn a new technique.
+- `get_my_needles`: needle and hook inventory, checked against a pattern.
+- Cards for all of them; stash entries now include the date they were added.
+
 ## 2.3.0
 
 ### Added
