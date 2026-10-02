@@ -44,9 +44,9 @@ export function consentPage(options: {
 <ul><li>your stash</li><li>your queue</li><li>your projects</li><li>your favorites</li><li>your library</li></ul>
 ${
   options.canWrite
-    ? `<p>and to <strong>add</strong> (when you ask it to):</p>
-<ul><li>yarn to your stash</li><li>patterns to your queue</li></ul>
-<p class="muted">It cannot edit or delete anything on Ravelry.`
+    ? `<p>and, when you ask it to, to <strong>add, update and remove</strong>:</p>
+<ul><li>yarn in your stash</li><li>patterns in your queue</li><li>your projects' progress, status and yarn</li></ul>
+<p class="muted">It never deletes projects.`
     : '<p class="muted">It cannot change anything on Ravelry.'
 } After you allow access, you'll be sent to <strong>${escapeHtml(options.redirectHost)}</strong>. Only continue if you started this from an app you trust.</p>
 <div class="actions">
