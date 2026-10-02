@@ -89,8 +89,8 @@ export function registerFindYarnShops(server: McpServer, ravelry: RavelryClient)
           .filter(shop => !shop.closed)
           .map(shop => ({
             name: shop.name.trim(),
-            address: shop.location ?? null,
-            city: shop.city ?? null,
+            address: nonEmpty(shop.location),
+            city: nonEmpty(shop.city),
             country: shop.country?.name ?? null,
             distance: shop.distance == null ? null : Math.round(shop.distance * 10) / 10,
             phone: nonEmpty(shop.phone),
