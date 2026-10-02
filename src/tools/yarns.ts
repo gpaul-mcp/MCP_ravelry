@@ -4,7 +4,7 @@ import * as z from 'zod';
 import type { RavelryClient } from '../ravelry/client.ts';
 import type { ApiNeedleSize, ApiYarn, ApiYarnListItem } from '../ravelry/types.ts';
 import { YARN_ATTRIBUTES, YARN_FIBERS, YARN_WEIGHTS } from '../ravelry/vocabulary.ts';
-import { htmlToText, nonEmpty, truncate, yarnUrl } from './format.ts';
+import { htmlToText, nonEmpty, rounded, truncate, yarnUrl } from './format.ts';
 
 const MAX_IDS = 20;
 const MAX_NOTES_LENGTH = 2_000;
@@ -37,7 +37,7 @@ export function toYarnSummary(yarn: ApiYarnListItem | ApiYarn): YarnSummary {
     grams_per_skein: yarn.grams ?? null,
     machine_washable: yarn.machine_washable ?? null,
     discontinued: yarn.discontinued ?? null,
-    rating: yarn.rating_count ? nonEmpty(yarn.rating_average) : null,
+    rating: yarn.rating_count ? rounded(nonEmpty(yarn.rating_average), 2) : null,
     rating_count: yarn.rating_count ?? null,
     photo_url: yarn.first_photo?.medium_url ?? yarn.first_photo?.small_url ?? null,
   };

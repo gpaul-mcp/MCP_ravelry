@@ -47,8 +47,16 @@ export function htmlToText(html: string): string {
     .trim();
 }
 
-/** Ravelry uses 0 and "" for "not set"; map those to null. */
+/** Ravelry uses 0, "" and stray whitespace for "not set"; map those to null and trim the rest. */
 export function nonEmpty<T extends string | number>(value: T | null | undefined): T | null {
-  if (!value) return null;
-  return value;
+  const cleaned = typeof value === 'string' ? (value.trim() as T) : value;
+  if (!cleaned) return null;
+  return cleaned;
+}
+
+/** Averages like 4.815425940138143 cost tokens and add nothing; keep one or two decimals. */
+export function rounded(value: number | null, decimals = 1): number | null {
+  if (value === null) return null;
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
 }

@@ -3,7 +3,7 @@ import * as z from 'zod';
 
 import type { RavelryClient } from '../ravelry/client.ts';
 import type { ApiPattern } from '../ravelry/types.ts';
-import { categoryPath, nonEmpty, patternUrl, truncate } from './format.ts';
+import { categoryPath, nonEmpty, patternUrl, rounded, truncate } from './format.ts';
 
 const MAX_IDS = 20;
 const MAX_NOTES_LENGTH = 4_000;
@@ -103,8 +103,8 @@ function toDetails(pattern: ApiPattern): PatternDetails {
         : null,
     download_url: pattern.download_location?.url ?? pattern.url ?? null,
     published: pattern.published ?? null,
-    difficulty: nonEmpty(pattern.difficulty_average),
-    rating: nonEmpty(pattern.rating_average),
+    difficulty: rounded(nonEmpty(pattern.difficulty_average)),
+    rating: rounded(nonEmpty(pattern.rating_average), 2),
     rating_count: pattern.rating_count ?? null,
     projects_count: pattern.projects_count ?? null,
     favorites_count: pattern.favorites_count ?? null,

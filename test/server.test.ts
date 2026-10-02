@@ -33,8 +33,8 @@ const detailedPattern: ApiPattern = {
     },
   ],
   pattern_author: { id: 1, name: 'Jane Knits', permalink: 'jane-knits' },
-  difficulty_average: 2.5,
-  rating_average: 4.8,
+  difficulty_average: 2.4615384615,
+  rating_average: 4.815425940138143,
   rating_count: 120,
   yarn_weight_description: 'Worsted (9 wpi)',
   yardage: 180,
@@ -177,6 +177,8 @@ describe('ravelry MCP server', () => {
       yardage: '180–220 yards',
       needles_or_hooks: ['US 7 - 4.5 mm'],
       price: null,
+      difficulty: 2.5,
+      rating: 4.82,
     });
     expect(String(output.patterns[0]?.notes)).toMatch(/… \[truncated\]$/);
 

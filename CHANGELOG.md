@@ -3,6 +3,7 @@
 ## Unreleased
 
 - README: the hosted instance at `https://ravelry-mcp.gonz-paul.dev/mcp` comes first, with setup for Claude, ChatGPT, Claude Code, VS Code and Cursor; local installation moves to "Run it yourself".
+- Tool output: trims stray whitespace in shop details and rounds ratings/difficulty, found while testing the hosted instance.
 - HTTP mode: `GET /` serves a landing page showing the connector URL (never the URL secret).
 
 ## 2.1.0
