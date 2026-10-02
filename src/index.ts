@@ -1,48 +1,59 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { config } from 'dotenv';
-import path from 'path';
+#!/usr/bin/env node
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
+import { ConfigError, loadConfig } from './config.ts';
+import { serveHttp } from './http.ts';
+import { RavelryClient } from './ravelry/client.ts';
+import { createServer, SERVER_NAME, SERVER_VERSION } from './server.ts';
 
-config({
-  path: path.resolve(process.cwd(), envFile),
-});
+// stdout carries the MCP protocol over stdio: every log line goes to stderr.
+const log = (message: string) => {
+  console.error(`[${SERVER_NAME}] ${message}`);
+};
 
-// process.env.AUTH_USER = "XXXXXXXX";
-// process.env.AUTH_PASS = "XXXXXXXX";
+async function main(): Promise<void> {
+  const config = loadConfig();
 
-export const mcpServer = new McpServer({
-  name: 'Ravelry',
-  version: '1.0.0',
-});
+  const ravelry = new RavelryClient({
+    username: config.ravelryUsername,
+    password: config.ravelryPassword,
+    timeoutMs: config.requestTimeoutMs,
+    userAgent: `${SERVER_NAME}-mcp/${SERVER_VERSION}`,
+  });
+  const factory = () => createServer(ravelry);
 
-// Import all endpoints
-import './endpoints';
-
-async function main() {
-  if (!process.env.AUTH_USER) {
-    throw new Error('AUTH_USER environment variable not set.');
-  }
-  if (!process.env.AUTH_PASS) {
-    throw new Error('AUTH_PASS environment variable not set.');
-  }
-
-  try {
-    const transport = new StdioServerTransport();
-    await mcpServer.connect(transport);
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Connected to MCP server');
+  let close: () => Promise<void>;
+  if (config.transport === 'http') {
+    ({ close } = await serveHttp(factory, {
+      host: config.host,
+      port: config.port,
+      allowedHosts: config.allowedHosts,
+      urlSecret: config.urlSecret,
+      rateLimitPerMinute: config.rateLimitPerMinute,
+      trustProxy: config.trustProxy,
+    }));
+    const path = config.urlSecret ? '/mcp/<MCP_URL_SECRET>' : '/mcp';
+    log(`v${SERVER_VERSION} listening on http://${config.host}:${config.port}${path}`);
+    if (config.allowedHosts.length > 0) {
+      log(`accepting public hostnames: ${config.allowedHosts.join(', ')}`);
     }
-  } catch (error) {
-    console.error('Error connecting MCP server:', error);
-    process.exit(1);
+  } else {
+    const handle = serveStdio(factory);
+    close = () => handle.close();
+    log(`v${SERVER_VERSION} running on stdio`);
   }
+
+  const shutdown = () => {
+    close().then(
+      () => process.exit(0),
+      () => process.exit(1),
+    );
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
 }
 
-// Run main function
-main().catch(error => {
-  console.error('Fatal error in main():', error);
+main().catch((error: unknown) => {
+  log(error instanceof ConfigError ? error.message : `Fatal error: ${String(error)}`);
   process.exit(1);
 });

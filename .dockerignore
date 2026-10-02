@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.mcpb-build
+*.mcpb
+.env
+.env.*
+.git
+.github
+.husky
+.vscode
+test
+scripts
+*.md

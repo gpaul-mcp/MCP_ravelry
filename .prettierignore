@@ -1,6 +1,4 @@
-node_modules/
-dist/
-coverage/
-*.md
-*.yml
-*.yaml
+dist
+coverage
+.mcpb-build
+package-lock.json
