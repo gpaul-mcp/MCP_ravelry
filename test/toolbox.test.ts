@@ -106,6 +106,34 @@ describe('count_stitches parsing', () => {
     expect(row.stitches_after).toBe(20);
   });
 
+  it('counts shaping repeated to the end by its own ratio', () => {
+    const rows = countRows(
+      ['inc around (12)', '2 sc in each st around (24)', 'dec around (12)'],
+      6,
+      'crochet',
+    );
+    expect(rows.map(r => r.stitches_after)).toEqual([12, 24, 12]);
+    expect(rows.flatMap(r => r.warnings)).toEqual([]);
+    expect(countRow('k2tog to end', 9, 'knitting').warnings[0]).toMatch(/1 over/);
+  });
+
+  it('understands turning chains that count, short rows and "work in pattern"', () => {
+    expect(
+      countRow(
+        'Ch 3 (counts as dc), dc in next st, *ch 1, sk 1, dc in next 2 sts; rep from * across, turn.',
+        20,
+        'crochet',
+      ),
+    ).toMatchObject({ stitches_used: 20, stitches_after: 20, warnings: [] });
+    expect(countRow('k2, w&t, p2, w&t', 19, 'knitting')).toMatchObject({
+      stitches_after: 19,
+      warnings: [],
+      notes: [expect.stringMatching(/15 stitches stay unworked/)],
+    });
+    expect(countRow('k1, work in patt to last st, k1', 19, 'knitting').stitches_after).toBe(19);
+    expect(countRow('knit the knits and purl the purls', 19, 'knitting').warnings).toEqual([]);
+  });
+
   it('asks for the stitch count when a repeat runs to the end', () => {
     const row = countRow('*k1, p1; rep from * to end', null, 'knitting');
     expect(row.stitches_after).toBeNull();

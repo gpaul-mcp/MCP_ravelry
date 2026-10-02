@@ -92,8 +92,14 @@ export class RavelryClient {
 
   /** Fetches full details for one or more patterns in a single request. */
   async getPatterns(ids: readonly number[], signal?: AbortSignal): Promise<ApiPattern[]> {
-    const response = await this.#request<ApiPatternsResponse>('/patterns.json', { ids }, signal);
-    return Object.values(response.patterns);
+    return this.#batch(ids, async batch => {
+      const response = await this.#request<ApiPatternsResponse>(
+        '/patterns.json',
+        { ids: batch },
+        signal,
+      );
+      return Object.values(response.patterns);
+    });
   }
 
   searchYarns(params: SearchParams, signal?: AbortSignal) {
@@ -102,8 +108,33 @@ export class RavelryClient {
 
   /** Fetches full details for one or more yarns in a single request. */
   async getYarns(ids: readonly number[], signal?: AbortSignal): Promise<ApiYarn[]> {
-    const response = await this.#request<ApiYarnsResponse>('/yarns.json', { ids }, signal);
-    return Object.values(response.yarns);
+    return this.#batch(ids, async batch => {
+      const response = await this.#request<ApiYarnsResponse>('/yarns.json', { ids: batch }, signal);
+      return Object.values(response.yarns);
+    });
+  }
+
+  /**
+   * Ravelry answers 404 for a whole batch when any one id does not exist, so on
+   * a 404 split the batch in halves until only the missing ids are left out.
+   */
+  async #batch<T>(
+    ids: readonly number[],
+    fetchBatch: (ids: readonly number[]) => Promise<T[]>,
+  ): Promise<T[]> {
+    if (ids.length === 0) return [];
+    try {
+      return await fetchBatch(ids);
+    } catch (error) {
+      if (!(error instanceof RavelryApiError) || error.status !== 404) throw error;
+      if (ids.length === 1) return [];
+      const middle = Math.ceil(ids.length / 2);
+      const halves = await Promise.all([
+        this.#batch(ids.slice(0, middle), fetchBatch),
+        this.#batch(ids.slice(middle), fetchBatch),
+      ]);
+      return halves.flat();
+    }
   }
 
   searchShops(params: SearchParams, signal?: AbortSignal) {

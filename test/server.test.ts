@@ -168,7 +168,15 @@ describe('ravelry MCP server', () => {
   });
 
   it('returns curated details and reports missing ids', async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse({ patterns: { '101': detailedPattern } }));
+    // Like Ravelry: one unknown id makes the whole batch 404, so it is split.
+    fetchMock.mockImplementation(input => {
+      const ids = new URL(input).searchParams.get('ids');
+      return Promise.resolve(
+        ids === '101'
+          ? jsonResponse({ patterns: { '101': detailedPattern } })
+          : jsonResponse({ error: '404 Not Found' }, 404),
+      );
+    });
 
     const result = await client.callTool({
       name: 'get_pattern_details',
@@ -195,9 +203,9 @@ describe('ravelry MCP server', () => {
     });
     expect(String(output.patterns[0]?.notes)).toMatch(/… \[truncated\]$/);
 
-    const requestUrl = requestedUrl(fetchMock);
-    expect(requestUrl.pathname).toBe('/patterns.json');
-    expect(requestUrl.searchParams.get('ids')).toBe('101 999');
+    expect(
+      fetchMock.mock.calls.map(([input]) => new URL(input as string).searchParams.get('ids')),
+    ).toEqual(['101 999', '101', '999']);
   });
 
   it('turns Ravelry auth failures into an actionable tool error', async () => {

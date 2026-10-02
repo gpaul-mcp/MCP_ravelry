@@ -20,6 +20,7 @@ export interface RowCount {
   stated_count: number | null;
   steps: Step[];
   warnings: string[];
+  notes: string[];
 }
 
 interface Op {
@@ -46,6 +47,9 @@ interface Group {
 }
 
 type Item = Op | Group;
+
+const WORK_IN_PATTERN =
+  /^(?:knit the knits and purl the purls|k the k sts and p the p sts|work (?:even|straight|in (?:patt(?:ern)?|rib(?:bing)?)|as (?:est(?:ablished)?|set))|patt)$/;
 
 const TO_END =
   /\b(?:to end|across|around|to the end(?: of (?:row|rnd|round))?|to end of (?:row|rnd|round)|to marker|to m)\b/;
@@ -193,13 +197,18 @@ export function countRow(rawRow: string, before: number | null, craft: Craft): R
   const outcome = evaluate(items, before, steps, warnings);
 
   const used = outcome ? outcome.used : null;
-  const after = outcome ? outcome.made : null;
-  if (
-    before !== null &&
-    used !== null &&
-    used !== before &&
-    !/w&t|wrap and turn|turn\b/.test(lower)
-  ) {
+  // Short rows turn before the end: the unworked stitches stay on the needle.
+  const shortRow =
+    /w&t|wrap and turn|w ?\+ ?t|wrp-t/.test(lower) || /\bturn\b(?!\s*\.?\s*$)/.test(lower);
+  const unworked = shortRow && before !== null && used !== null ? before - used : 0;
+  const after = outcome ? outcome.made + Math.max(0, unworked) : null;
+  const notes: string[] = [];
+  if (shortRow && unworked > 0) {
+    notes.push(
+      `Short row: ${unworked} stitches stay unworked on the needle and are still counted.`,
+    );
+  }
+  if (before !== null && used !== null && used !== before && !(shortRow && used < before)) {
     warnings.push(
       used < before
         ? `This row only works ${used} of the ${before} stitches (${before - used} left over).`
@@ -223,6 +232,7 @@ export function countRow(rawRow: string, before: number | null, craft: Craft): R
     stated_count: stated,
     steps,
     warnings,
+    notes,
   };
 }
 
@@ -361,22 +371,40 @@ function parseOp(raw: string, craft: Craft, warnings: string[]): Op | null {
     ...extra,
   });
 
-  // "k to end", "p to last 3 sts", "sc across", "dc in each st to end".
+  // Turning chains that say whether they count as a stitch.
+  const countsAs = /^(?:ch|chain)\s*\d+\s*\((?:counts|cnts) as[^)]*\)$/.exec(text);
+  if (countsAs) return op(1, 1, 'turning chain, counts as the first stitch');
+  if (/^(?:ch|chain)\s*\d+\s*\((?:does not|doesn't) count[^)]*\)$/.test(text)) {
+    return op(0, 0, 'turning chain (not counted)');
+  }
+  if (WORK_IN_PATTERN.test(text)) {
+    return op(1, 1, 'work in pattern as established', { toEnd: { last: 0 } });
+  }
+
+  // "k to end", "p to last 3 sts", "k2tog to end", "inc around", "2 sc in each st across".
   const last = TO_LAST.exec(text);
   const toEnd = last ? { last: lastCount(last) } : TO_END.test(text) ? { last: 0 } : undefined;
   if (toEnd) {
+    const inEach = /\bin each\b/.test(text);
     const base = text
       .replace(TO_LAST, '')
       .replace(TO_END, '')
       .replace(/\bin each\b/, '')
       .trim();
-    if (/^(?:bo|bind off|cast off)\b/.test(base)) return op(0, 0, 'bind off', { toEnd });
+    if (/^(?:bo|bind off|cast off)\b/.test(base)) return op(1, 0, 'bind off', { toEnd });
     const factor = /^(\d+)\s/.exec(base);
-    const name = base.replace(/^(\d+)\s/, '').trim();
-    return op(0, 0, `${meaningOf(name)} every stitch`, {
-      toEnd,
-      ...(factor ? { makes: Number(factor[1]) } : {}),
-    });
+    if (inEach && factor) {
+      const name = base.replace(/^(\d+)\s/, '').trim();
+      return op(1, Number(factor[1]), `${factor[1]} ${meaningOf(name)} in every stitch`, {
+        toEnd,
+      });
+    }
+    // The step repeated to the end: one unit of it ("k2tog" uses 2, makes 1).
+    const unit = base ? parseOp(base, craft, []) : null;
+    if (unit && unit.uses > 0 && !unit.meaning.startsWith('unknown')) {
+      return op(unit.uses, unit.makes, `${unit.meaning}, to the end`, { toEnd });
+    }
+    return op(1, 1, `${meaningOf(base)} every stitch`, { toEnd });
   }
 
   // Bind off / cast on.
@@ -517,9 +545,15 @@ function evaluate(
           return null;
         }
         const rest = Math.max(0, available - item.toEnd.last);
-        times = 1;
-        uses = rest;
-        makes = item.meaning === 'bind off' ? 0 : rest * (item.makes || 1);
+        const unit = Math.max(1, item.uses);
+        times = Math.floor(rest / unit);
+        uses = unit;
+        makes = item.makes;
+        if (rest % unit !== 0) {
+          warnings.push(
+            `"${item.text}" works ${unit} sts at a time but ${rest} are left: ${rest % unit} over.`,
+          );
+        }
       }
       steps.push({
         text: item.text,
