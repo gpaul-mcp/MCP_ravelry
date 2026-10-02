@@ -48,6 +48,7 @@ function fakeRavelry() {
     let response: unknown = { error: 'not found' };
     if (route === 'GET /patterns.json') response = { patterns: { '990044': pattern } };
     else if (route === 'GET /people/knitter/stash/5.json') response = { stash };
+    else if (route === 'POST /people/knitter/stash/5.json') response = { stash };
     else if (route === 'POST /projects/knitter/create.json') response = { project };
     else if (route === 'GET /projects/knitter/77.json') response = { project };
     else if (route === 'POST /projects/knitter/77.json') {
@@ -183,5 +184,42 @@ describe('project tools', () => {
       client.callTool({ name: 'log_project_progress', arguments: { project_id: 77, note: 'x' } }),
     ).rejects.toThrow();
     expect(writes).toHaveLength(0);
+  });
+
+  it('changes the total owned through the stash, not the pack endpoint', async () => {
+    // Ravelry answers 400 to /packs/{id} for a stash pack without a project.
+    const { fetchMock, writes } = fakeRavelry();
+    const client = await connect(fetchMock);
+
+    const result = await client.callTool({
+      name: 'update_stash_entry',
+      arguments: { stash_id: 5, total_skeins: 4, location: 'Box', colorway: 'Teal' },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(writes).toEqual([
+      {
+        method: 'POST',
+        path: '/people/knitter/stash/5.json',
+        body: { location: 'Box', pack: { colorway: 'Teal', skeins: '4' } },
+      },
+    ]);
+  });
+
+  it("refuses someone else's project (Ravelry ignores the username in the URL)", async () => {
+    const fetchMock = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        jsonResponse({
+          project: { id: 999, name: 'Not mine', permalink: 'x', user: { username: 'someoneelse' } },
+        }),
+      ),
+    );
+    const client = await connect(fetchMock);
+    const result = await client.callTool({
+      name: 'get_my_project',
+      arguments: { project_id: 999 },
+    });
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toMatch(/not one of knitter's projects/);
   });
 });

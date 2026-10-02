@@ -225,7 +225,7 @@ function requestedUrl(fetchMock: ReturnType<typeof vi.fn<typeof fetch>>, call = 
 }
 
 describe('interactive view (MCP Apps)', () => {
-  it('links the main tools to the view and serves it with Ravelry image access', async () => {
+  it('links pattern results to the view and serves it with Ravelry image access', async () => {
     const { client, close } = await connect(routeFetch({}));
     try {
       const { tools } = await client.listTools();
@@ -234,13 +234,8 @@ describe('interactive view (MCP Apps)', () => {
         return ui?.resourceUri === 'ui://ravelry/view.html';
       });
       expect(withView.map(tool => tool.name).sort()).toEqual([
-        'find_yarn_shops',
-        'find_yarns_for_pattern',
-        'get_pattern_details',
-        'get_yarn_details',
-        'match_yarns',
+        // Widgets only where they help: pattern results (and, signed in, the row counter).
         'search_patterns',
-        'search_yarns',
       ]);
 
       const resource = await client.readResource({ uri: 'ui://ravelry/view.html' });

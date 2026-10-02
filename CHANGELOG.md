@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.6.0
+
+### Changed
+
+- Widgets only where they help: a pattern carousel (photos, facts, 👍 / 👎 shared with the assistant, "find more like my 👍", similar, details, queue) and a real row counter (instant taps saved in the background, keyboard support, target and repeat settings). Other tools return text only.
+- The widget picks its layout from the result itself; hosts that do not say which tool ran showed "Done." before.
+
+### Fixed
+
+- `update_stash_entry` failed with HTTP 400 when changing the amount owned (Ravelry refuses `/packs` for stash packs); the amount now goes through the stash update.
+- Project tools could read someone else's project by id (Ravelry ignores the username in the URL); the owner is now checked.
+- Batches with one unknown pattern or yarn id no longer fail as a whole (Ravelry answers 404 for the batch); `missing_ids` works.
+- `count_stitches`: shaping repeated to the end ("inc around"), turning chains that count as a stitch, short rows, "work in pattern".
+- Queue names without "by Designer", queue time in days, oldest yarn only after a year, exact US needle lookup, discovery uses made projects too.
+
 ## 2.5.0
 
 ### Added

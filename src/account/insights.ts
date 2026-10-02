@@ -176,7 +176,6 @@ function registerPickFromQueue(server: McpServer, user: UserContext): void {
         ),
         queue_size: z.number(),
       }),
-      _meta: VIEW_META,
       annotations: readOnly,
     },
     async ({ limit }, ctx) => {
@@ -283,7 +282,6 @@ function registerCraftingProfile(server: McpServer, user: UserContext): void {
         favorites_count: z.number(),
         summary: z.string(),
       }),
-      _meta: VIEW_META,
       annotations: readOnly,
     },
     async (_input, ctx) => {

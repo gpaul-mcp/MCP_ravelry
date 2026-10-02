@@ -6,7 +6,6 @@ import type { ApiPattern } from '../ravelry/types.ts';
 import { weightPermalink } from '../ravelry/vocabulary.ts';
 import { patternUrl, yarnUrl } from '../tools/format.ts';
 import { skeinsFor } from '../toolbox/math.ts';
-import { VIEW_META } from '../view.ts';
 import type { UserContext } from './context.ts';
 import {
   addDays,
@@ -112,7 +111,6 @@ function registerEstimateFinish(server: McpServer, user: UserContext): void {
         ),
         notes: z.array(z.string()),
       }),
-      _meta: VIEW_META,
       annotations: readOnly,
     },
     async (input, ctx) => {
@@ -275,7 +273,6 @@ function registerShoppingList(server: McpServer, user: UserContext): void {
         unknown: z.array(z.string()).describe('Patterns without weight or yardage on Ravelry.'),
         notes: z.array(z.string()),
       }),
-      _meta: VIEW_META,
       annotations: readOnly,
     },
     async (input, ctx) => {
@@ -411,10 +408,10 @@ function registerQueueReview(server: McpServer, user: UserContext): void {
         already_made: z.array(item.extend({ status: z.string() })),
         stale: z.array(item.extend({ years_queued: z.number() })),
         total_yards: z.number().describe('Smallest sizes, patterns with a known yardage.'),
+        days_to_finish_at_your_pace: z.number().nullable(),
         years_to_finish_at_your_pace: z.number().nullable(),
         pace: paceSchema,
       }),
-      _meta: VIEW_META,
       annotations: readOnly,
     },
     async (_input, ctx) => {
@@ -435,7 +432,7 @@ function registerQueueReview(server: McpServer, user: UserContext): void {
       const toItem = (q: (typeof queue)[number]) => ({
         queued_id: q.id,
         pattern_id: q.pattern_id ? Number(q.pattern_id) : null,
-        pattern: q.pattern_name ?? q.name ?? 'Untitled',
+        pattern: q.short_pattern_name ?? q.pattern_name ?? q.name ?? 'Untitled',
         queued_on: isoDate(q.created_at),
       });
 
@@ -478,6 +475,7 @@ function registerQueueReview(server: McpServer, user: UserContext): void {
           years_queued: Math.round(years * 10) / 10,
         })),
         total_yards: totalYards,
+        days_to_finish_at_your_pace: pace ? Math.ceil(totalYards / pace.yards_per_day) : null,
         years_to_finish_at_your_pace: pace
           ? Math.round((totalYards / pace.yards_per_day / 365) * 10) / 10
           : null,
@@ -519,11 +517,12 @@ function registerStashAudit(server: McpServer, user: UserContext): void {
           }),
         ),
         unplanned: z.array(ref).describe('Free yarn in a weight no queued pattern uses.'),
-        oldest: z.array(ref.extend({ added: z.string().nullable(), years: z.number() })),
+        oldest: z
+          .array(ref.extend({ added: z.string().nullable(), years: z.number() }))
+          .describe('Yarn in the stash for over a year, oldest first.'),
         leftovers: z.object({ entries: z.number(), yards: z.number(), items: z.array(ref) }),
         missing_info: z.array(ref),
       }),
-      _meta: VIEW_META,
       annotations: readOnly,
     },
     async (_input, ctx) => {
@@ -574,7 +573,7 @@ function registerStashAudit(server: McpServer, user: UserContext): void {
 
       const now = today();
       const oldest = stash
-        .filter(entry => entry.added)
+        .filter(entry => entry.added && entry.added <= addDays(now, -365))
         .map(entry => ({ entry, date: entry.added ?? '' }))
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(0, 5)

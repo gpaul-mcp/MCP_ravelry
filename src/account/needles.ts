@@ -3,7 +3,6 @@ import * as z from 'zod';
 
 import { RavelryApiError } from '../ravelry/client.ts';
 import { nonEmpty, patternUrl } from '../tools/format.ts';
-import { VIEW_META } from '../view.ts';
 import type { UserContext } from './context.ts';
 
 const json = <T extends Record<string, unknown>>(output: T) => ({
@@ -55,7 +54,6 @@ export function registerNeedleTools(server: McpServer, user: UserContext): void 
           })
           .nullable(),
       }),
-      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ pattern_id }, ctx) => {

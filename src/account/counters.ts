@@ -198,7 +198,6 @@ export function registerCounterTools(server: McpServer, user: UserContext): void
         repeat: z.number().int().min(1).max(1000).nullable().optional(),
       }),
       outputSchema,
-      _meta: VIEW_META,
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,

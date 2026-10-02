@@ -591,7 +591,13 @@ function matches(row: Record<string, unknown>, lookup: string): boolean {
     const keys = entries.filter(([key]) =>
       key.startsWith(region === 'japanese' ? 'japanese' : region),
     );
-    if (keys.length > 0) return keys.some(([, v]) => containsToken(v, value));
+    if (keys.length > 0) {
+      // Needle sizes match exactly: "US 8" is not the "8/0" steel hook.
+      if ('mm' in row) {
+        return keys.some(([, v]) => typeof v === 'string' && v.toLowerCase() === value.trim());
+      }
+      return keys.some(([, v]) => containsToken(v, value));
+    }
   }
   const number = Number(wanted);
   if (Number.isFinite(number) && 'mm' in row) return row.mm === number;

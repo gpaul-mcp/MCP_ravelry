@@ -5,7 +5,6 @@ import { attributeName } from '../ravelry/attributes.ts';
 import type { RavelryClient } from '../ravelry/client.ts';
 import type { ApiPattern } from '../ravelry/types.ts';
 import { categoryPath, nonEmpty, patternUrl, rounded, truncate } from './format.ts';
-import { VIEW_META } from '../view.ts';
 
 const MAX_IDS = 20;
 const MAX_NOTES_LENGTH = 4_000;
@@ -75,7 +74,6 @@ export function registerGetPatternDetails(server: McpServer, ravelry: RavelryCli
         'terminology (US/UK), and the designer notes.',
       inputSchema,
       outputSchema,
-      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ ids }, ctx) => {

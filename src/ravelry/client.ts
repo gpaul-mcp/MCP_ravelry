@@ -278,12 +278,21 @@ export class RavelryClient {
     );
   }
 
-  getProject(username: string, id: number, signal?: AbortSignal) {
-    return this.#request<{ project: ApiProjectFull }>(
+  /**
+   * One of `username`'s projects. Ravelry finds projects by id alone and ignores
+   * the username in the URL, so check the owner to never mix up someone else's.
+   */
+  async getProject(username: string, id: number, signal?: AbortSignal) {
+    const response = await this.#request<{ project: ApiProjectFull }>(
       `/projects/${user(username)}/${id}.json`,
       {},
       signal,
     );
+    const owner = response.project.user?.username;
+    if (owner && owner.toLowerCase() !== username.toLowerCase()) {
+      throw new RavelryApiError(`Project ${id} is not one of ${username}'s projects.`, 404);
+    }
+    return response;
   }
 
   /** Creates a project; `data` is Ravelry's Project (POST) object, packs included. */

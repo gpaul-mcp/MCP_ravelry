@@ -26,7 +26,7 @@ import { registerYarnTools } from './tools/yarns.ts';
 import { registerView } from './view.ts';
 
 export const SERVER_NAME = 'ravelry';
-export const SERVER_VERSION = '2.5.0';
+export const SERVER_VERSION = '2.6.0';
 
 const INSTRUCTIONS = `Tools for knitters and crocheters, backed by Ravelry.
 - Patterns: search_patterns (defaults to free patterns; pass availability "any" to include paid ones), then get_pattern_details with up to 20 ids for yarn, gauge, needles, sizes and notes. For "what can I make with this yarn", combine weight and yardage_max.

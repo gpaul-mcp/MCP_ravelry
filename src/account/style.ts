@@ -211,10 +211,17 @@ export function registerStyleTools(server: McpServer, user: UserContext): void {
         }
         searches.push({ params, why: `a well-loved, approachable way to learn ${attribute.name}` });
       } else {
-        const styles = topStylePermalinks(favoritePatterns);
-        const topCategory = category ?? favoriteCategoryPermalink(favoritePatterns);
-        const designer = profile.favourite_designers[0]?.name;
-        const weight = weightPermalink(profile.favourite_weights[0]?.name);
+        // Favorites say most about taste; what they made counts too.
+        const liked = [...favoritePatterns, ...madePatterns];
+        const styles = topStylePermalinks(liked);
+        const topCategory = category ?? favoriteCategoryPermalink(liked);
+        const designer =
+          profile.favourite_designers[0]?.name ??
+          count(madePatterns.map(p => p.pattern_author?.name)).find(d => d.count >= 2)?.name;
+        const weight = weightPermalink(
+          profile.favourite_weights[0]?.name ??
+            count(madePatterns.map(p => p.yarn_weight?.name))[0]?.name,
+        );
         const base = { craft, availability, sort: 'popularity', page_size: 30 };
         if (styles.length >= 2) {
           searches.push({
