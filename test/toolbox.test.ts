@@ -245,6 +245,48 @@ describe('toolbox tools', () => {
     });
   });
 
+  it('tells free-online patterns with a paid PDF apart from free ones', async () => {
+    const blogPattern: ApiPattern = {
+      ...pattern,
+      free: true,
+      price: 4.5,
+      currency: 'CAD',
+      url: 'https://designer.example/free-pattern',
+      download_location: {
+        type: 'ravelry',
+        free: false,
+        url: 'https://www.ravelry.com/purchase/x',
+      },
+    };
+    const tools = await client({ '/patterns.json': { patterns: { '5': blogPattern } } });
+    const result = await tools.callTool({ name: 'get_pattern_details', arguments: { ids: [5] } });
+    expect((result.structuredContent as { patterns: unknown[] }).patterns[0]).toMatchObject({
+      free: true,
+      access: 'free_online',
+      price: '4.5 CAD',
+      free_url: 'https://designer.example/free-pattern',
+    });
+  });
+
+  it('converts grams to length with the yarn ratio, or estimates from the weight', async () => {
+    const tools = await client({ '/yarns.json': { yarns: { '7': yarn } } });
+    const exact = await tools.callTool({
+      name: 'convert_yarn_amount',
+      arguments: { grams: 200, yarn_id: 7 },
+    });
+    expect(exact.structuredContent).toMatchObject({
+      yards: 420,
+      meters: 384,
+      skeins: 2,
+      estimated: false,
+    });
+    const typical = await tools.callTool({
+      name: 'convert_yarn_amount',
+      arguments: { meters: 300, weight: 'dk' },
+    });
+    expect(typical.structuredContent).toMatchObject({ yards: 328, grams: 131, estimated: true });
+  });
+
   it('works out skeins for the smallest and largest size', async () => {
     const tools = await client({
       '/patterns.json': { patterns: { '5': pattern } },

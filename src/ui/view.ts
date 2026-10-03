@@ -33,6 +33,7 @@ interface PatternFacts {
   meterage: string | null;
   rating: number | null;
   price: string | null;
+  access?: 'free' | 'free_online' | 'paid';
 }
 
 interface CounterView {
@@ -120,6 +121,7 @@ function initialUnits(fromServer: unknown): Units {
 let units: Units = 'metric';
 const factsCache = new Map<number, PatternFacts>();
 const factRows = new Map<number, HTMLElement>();
+const ribbons = new Map<number, HTMLElement>();
 
 function unitsToggle(): HTMLElement {
   const button = (value: Units, text: string) => {
@@ -234,13 +236,13 @@ function patternCard(pattern: PatternSummary, facts: Map<number, HTMLElement>): 
   } else {
     photo.append(h('span', { class: 'placeholder' }, '🧶'));
   }
-  photo.append(
-    h(
-      'span',
-      { class: 'ribbon' },
-      chip(pattern.free ? 'Free' : 'Paid', pattern.free ? 'good' : ''),
-    ),
+  const ribbon = h(
+    'span',
+    { class: 'ribbon' },
+    chip(pattern.free ? 'Free' : 'Paid', pattern.free ? 'good' : ''),
   );
+  ribbons.set(pattern.id, ribbon);
+  photo.append(ribbon);
 
   const like = h('button', { class: 'react', title: 'I like this' }, '👍');
   const dislike = h('button', { class: 'react', title: 'Not for me' }, '👎');
@@ -350,13 +352,19 @@ function paintFacts() {
     const pattern = factsCache.get(id);
     if (!pattern) continue;
     const length = units === 'metric' ? (pattern.meterage ?? pattern.yardage) : pattern.yardage;
+    // "Free" on Ravelry can mean free on the designer's site with a paid PDF.
+    const label =
+      pattern.access === 'free_online' ? 'Free online' : pattern.access === 'paid' ? 'Paid' : null;
+    if (label) ribbons.get(id)?.replaceChildren(chip(label, label === 'Paid' ? '' : 'good'));
     row.replaceChildren(
       ...[
         pattern.difficulty ? chip(`Difficulty ${pattern.difficulty}/10`) : null,
         pattern.yarn_weight ? chip(pattern.yarn_weight.replace(/\s*\(.*\)$/, ''), 'accent') : null,
         length ? chip(length) : null,
         pattern.rating ? chip(`★ ${pattern.rating}`) : null,
-        pattern.price ? chip(pattern.price) : null,
+        pattern.price
+          ? chip(pattern.access === 'free_online' ? `PDF ${pattern.price}` : pattern.price)
+          : null,
       ].filter((node): node is HTMLSpanElement => node !== null),
     );
   }
@@ -399,6 +407,7 @@ function carousel(patterns: PatternSummary[], facts: Map<number, HTMLElement>): 
 function renderPatterns(data: Data): Child[] {
   units = initialUnits(data.units);
   factRows.clear();
+  ribbons.clear();
   const facts = new Map<number, HTMLElement>();
   footer = h('div', { class: 'footer' });
   const sections: Child[] = [];

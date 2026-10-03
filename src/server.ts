@@ -27,7 +27,7 @@ import { registerYarnTools } from './tools/yarns.ts';
 import { registerView } from './view.ts';
 
 export const SERVER_NAME = 'ravelry';
-export const SERVER_VERSION = '2.7.0';
+export const SERVER_VERSION = '2.8.0';
 
 const INSTRUCTIONS = `Tools for knitters and crocheters, backed by Ravelry.
 - Patterns: search_patterns (defaults to free patterns; pass availability "any" to include paid ones), then get_pattern_details with up to 20 ids for yarn, gauge, needles, sizes and notes. For "what can I make with this yarn", combine weight and yardage_max.
@@ -35,7 +35,7 @@ const INSTRUCTIONS = `Tools for knitters and crocheters, backed by Ravelry.
 - Labels, receipts, invoices: read the yarn details from the image, then match_yarns to find the Ravelry yarn ids.
 - Substitutions: find_yarns_for_pattern shows the yarns other people used for a pattern. Prefer yarns of the same weight and check the total yardage still fits.
 - Shops: find_yarn_shops, using coordinates of the place the user names.
-- Calculations: never do knitting arithmetic in your head. adjust_for_gauge (swatch vs pattern gauge, recalculated counts), spread_evenly ("increase 13 evenly across 97"), yarn_needed (skeins to buy), count_stitches (check written rows and stitch counts before explaining them).
+- Calculations: never do knitting arithmetic in your head. adjust_for_gauge (swatch vs pattern gauge, recalculated counts), spread_evenly ("increase 13 evenly across 97"), yarn_needed (skeins to buy), convert_yarn_amount (grams ↔ meters/yards, as yarn is often sold by weight), count_stitches (check written rows and stitch counts before explaining them).
 - crafting_reference for needle/hook sizes, yarn weights across regions, US/UK terms and abbreviations. A pattern's terminology field says whether its crochet terms are US or UK.
 Units: Ravelry counts in yards; results also give meters (meterage, meters_per_skein, meters...). Answer in the units the user uses.
 Always give the user the Ravelry url of every pattern, yarn or shop you mention.`;

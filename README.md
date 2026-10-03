@@ -92,13 +92,14 @@ What the server stores: your Ravelry username and its Ravelry sign-in tokens, en
 
 The assistant uses these instead of doing knitting arithmetic in its head, so the numbers are right and it can focus on explaining.
 
-| Tool                 | What it does                                                                                                                                                                                                                     |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `adjust_for_gauge`   | Your swatch vs the pattern gauge (typed in, or read from a Ravelry pattern): change needles or not, how big the piece comes out as written, and the pattern's numbers recalculated for your gauge, rounded to the stitch repeat. |
-| `spread_evenly`      | "Increase 13 evenly across 97" → `[k8, M1] 6 times, [k7, M1] 7 times`. Knitting or crochet, flat or in the round.                                                                                                                |
-| `yarn_needed`        | Skeins to buy for a pattern (smallest and largest size) in a given yarn, with a safety margin; warns when the yarn weight differs.                                                                                               |
-| `count_stitches`     | Reads written rows (`*k2, p2; rep from * to last 2 sts, k2`, `(sc, inc) x 6 (18)`) and counts what each step uses and makes; flags rows that don't add up and counts that differ from the pattern's.                             |
-| `crafting_reference` | Needle and hook sizes (metric, US, UK, Japanese), yarn weights across regions (US worsted = UK aran = AU 10 ply), US↔UK crochet and knitting terms, and standard abbreviations.                                                  |
+| Tool                  | What it does                                                                                                                                                                                                                     |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adjust_for_gauge`    | Your swatch vs the pattern gauge (typed in, or read from a Ravelry pattern): change needles or not, how big the piece comes out as written, and the pattern's numbers recalculated for your gauge, rounded to the stitch repeat. |
+| `spread_evenly`       | "Increase 13 evenly across 97" → `[k8, M1] 6 times, [k7, M1] 7 times`. Knitting or crochet, flat or in the round.                                                                                                                |
+| `yarn_needed`         | Skeins to buy for a pattern (smallest and largest size) in a given yarn, with a safety margin; warns when the yarn weight differs.                                                                                               |
+| `convert_yarn_amount` | Grams ↔ meters ↔ yards ↔ skeins for a yarn (its own ball-band ratio) or a yarn weight (typical ratio, marked as an estimate): "I have 200 g of Rios", "how many grams is 300 m of DK?".                                          |
+| `count_stitches`      | Reads written rows (`*k2, p2; rep from * to last 2 sts, k2`, `(sc, inc) x 6 (18)`) and counts what each step uses and makes; flags rows that don't add up and counts that differ from the pattern's.                             |
+| `crafting_reference`  | Needle and hook sizes (metric, US, UK, Japanese), yarn weights across regions (US worsted = UK aran = AU 10 ply), US↔UK crochet and knitting terms, and standard abbreviations.                                                  |
 
 Starters: **Read me this row**, **Chart ↔ written instructions**, **Find a pattern from a photo** and **Fix my knitting or crochet problem**.
 

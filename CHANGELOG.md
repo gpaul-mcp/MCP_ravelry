@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.8.0
+
+### Added
+
+- Grams: stash yarn recorded only by weight gets a length (the yarn's own grams-to-length ratio, else a typical one for its weight, flagged by `length_source`), so it counts in every stash tool; the shopping list adds grams to buy; `convert_yarn_amount` converts grams ↔ meters ↔ yards ↔ skeins.
+
+### Fixed
+
+- Patterns free on the designer's website with a paid Ravelry PDF were shown as free: `get_pattern_details` now has `access` (free, free_online, paid), the PDF `price` and the `free_url`, and the carousel shows "Free online" with the PDF price.
+
 ## 2.7.0
 
 ### Added

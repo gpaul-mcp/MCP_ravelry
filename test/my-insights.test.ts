@@ -98,6 +98,13 @@ const projects: ApiProject[] = [
 
 const stash: ApiStash[] = [
   {
+    // Recorded by weight only, as yarn sold in grams often is.
+    id: 2,
+    name: 'Grams-only DK',
+    personal_yarn_weight: { name: 'DK' },
+    primary_pack: { total_grams: 150 },
+  },
+  {
     id: 1,
     name: 'Worsted stash',
     personal_yarn_weight: { name: 'Worsted' },
@@ -138,7 +145,8 @@ function fakeRavelry() {
         paginator: page(3),
       };
     } else if (path === '/people/knitter/stash/list.json') body = { stash, paginator: page(1) };
-    else if (path === '/people/knitter/stash/1.json') body = { stash: stash[0] };
+    else if (path === '/people/knitter/stash/1.json') body = { stash: stash[1] };
+    else if (path === '/people/knitter/stash/2.json') body = { stash: stash[0] };
     else if (path === '/people/knitter/favorites/list.json') {
       body = { favorites: [{ id: 1, type: 'pattern', favorited: { id: 3 } }], paginator: page(1) };
     } else if (path === '/people/knitter/needles/list.json') {
@@ -253,11 +261,23 @@ describe('personal planning tools', () => {
   it('audits the stash against how the user crafts', async () => {
     const { output } = await call('audit_my_stash', {});
     expect(output).toMatchObject({
-      entries: 1,
-      total_yards: 300,
+      entries: 2,
+      // 300 yd recorded + 150 g of DK at a typical 250 yd / 100 g.
+      total_yards: 675,
       oldest: [{ stash_id: 1, added: '2019-05-01' }],
-      weights: [{ weight: 'worsted', stash_yards: 300, queued_patterns: 1 }],
-      unplanned: [],
+      weights: [
+        { weight: 'dk', stash_yards: 375, queued_patterns: 0 },
+        { weight: 'worsted', stash_yards: 300, queued_patterns: 1 },
+      ],
+    });
+  });
+
+  it('works out the length of yarn recorded only in grams', async () => {
+    const { output } = await call('get_my_stash', {});
+    expect((output.stash as Record<string, unknown>[]).find(e => e.id === 2)).toMatchObject({
+      yards: 375,
+      meters: 343,
+      length_source: 'typical_for_weight',
     });
   });
 

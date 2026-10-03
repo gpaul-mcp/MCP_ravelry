@@ -1,6 +1,6 @@
 {
   "name": "ravelry-mcp",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "MCP server for searching and exploring knitting and crochet patterns on Ravelry",
   "license": "MIT",
   "author": "Gpaul | Faldin",

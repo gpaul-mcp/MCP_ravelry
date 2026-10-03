@@ -4,6 +4,7 @@ import * as z from 'zod';
 import { RavelryApiError } from '../ravelry/client.ts';
 import type { ApiPattern } from '../ravelry/types.ts';
 import { weightPermalink } from '../ravelry/vocabulary.ts';
+import { yardsPerGram } from '../ravelry/yarn-amounts.ts';
 import { patternUrl, toMeters, yarnUrl } from '../tools/format.ts';
 import { skeinsFor } from '../toolbox/math.ts';
 import type { UserContext } from './context.ts';
@@ -225,6 +226,20 @@ function registerEstimateFinish(server: McpServer, user: UserContext): void {
   );
 }
 
+/** Grams for a length: with the planned yarn's own ratio, else typical for the weight. */
+function gramsFor(
+  yards: number | null,
+  yarn: { yardage?: number | null; grams?: number | null } | undefined,
+  weight: string | null,
+): { grams_to_buy: number | null; grams_estimated: boolean } {
+  const perGram = yards ? yardsPerGram(yarn, weight) : null;
+  if (!yards || !perGram) return { grams_to_buy: yards === 0 ? 0 : null, grams_estimated: false };
+  return {
+    grams_to_buy: Math.round(yards / perGram.ratio),
+    grams_estimated: perGram.source !== 'yarn',
+  };
+}
+
 function pick(pattern: ApiPattern, size: 'smallest' | 'largest'): number | null {
   const need = patternYardage(pattern);
   return size === 'largest' ? need.max : need.min;
@@ -269,6 +284,11 @@ function registerShoppingList(server: McpServer, user: UserContext): void {
             ),
             yards_to_buy: z.number().nullable(),
             meters_to_buy: z.number().nullable(),
+            grams_to_buy: z
+              .number()
+              .nullable()
+              .describe('From the planned yarn, else typical for the weight (grams_estimated).'),
+            grams_estimated: z.boolean(),
             planned_yarn: z
               .object({
                 id: z.number(),
@@ -280,7 +300,12 @@ function registerShoppingList(server: McpServer, user: UserContext): void {
           }),
         ),
         to_buy_by_weight: z.array(
-          z.object({ weight: z.string(), yards: z.number(), meters: z.number() }),
+          z.object({
+            weight: z.string(),
+            yards: z.number(),
+            meters: z.number(),
+            grams: z.number().nullable().describe('Typical for the weight: an estimate.'),
+          }),
         ),
         unknown: z.array(z.string()).describe('Patterns without weight or yardage on Ravelry.'),
         notes: z.array(z.string()),
@@ -360,6 +385,7 @@ function registerShoppingList(server: McpServer, user: UserContext): void {
             from_stash: fromStash,
             yards_to_buy: need ? Math.round(missing) : null,
             meters_to_buy: need ? toMeters(missing) : null,
+            ...gramsFor(need ? missing : null, yarn, weight),
             planned_yarn: yarn
               ? {
                   id: yarn.id,
@@ -387,7 +413,13 @@ function registerShoppingList(server: McpServer, user: UserContext): void {
         patterns: rows,
         to_buy_by_weight: [...byWeight].map(([weight, yards]) => {
           const withMargin = yards * (1 + input.margin_percent / 100);
-          return { weight, yards: Math.round(withMargin), meters: toMeters(withMargin) ?? 0 };
+          const perGram = yardsPerGram(null, weight);
+          return {
+            weight,
+            yards: Math.round(withMargin),
+            meters: toMeters(withMargin) ?? 0,
+            grams: perGram ? Math.round(withMargin / perGram.ratio / 5) * 5 : null,
+          };
         }),
         unknown,
         notes: [

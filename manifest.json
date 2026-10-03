@@ -3,7 +3,7 @@
   "manifest_version": "0.3",
   "name": "ravelry-mcp",
   "display_name": "Ravelry",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "Find knitting and crochet patterns, yarns, yarn substitutes and local yarn shops on Ravelry.",
   "long_description": "Lets Claude search Ravelry patterns by category, yarn weight, yardage, difficulty, fit, language and designer; read full pattern details (yarn, gauge, needles, sizes, notes); search yarns by weight, fiber and attributes; find the yarns other knitters actually used for a pattern; and find local yarn shops. Requires a free read-only API key pair from https://www.ravelry.com/pro/developer.",
   "author": {
@@ -85,6 +85,10 @@
     {
       "name": "yarn_needed",
       "description": "How many skeins of a yarn to buy for a pattern."
+    },
+    {
+      "name": "convert_yarn_amount",
+      "description": "Convert yarn amounts between grams, meters, yards and skeins."
     },
     {
       "name": "count_stitches",

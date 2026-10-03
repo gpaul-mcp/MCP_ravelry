@@ -119,7 +119,12 @@ export const patternSummarySchema = z.object({
   id: z.number().describe('Pass to get_pattern_details for full information.'),
   name: z.string(),
   url: z.string(),
-  free: z.boolean(),
+  free: z
+    .boolean()
+    .describe(
+      "Also true when it is free on the designer's site but the PDF is sold: see access in " +
+        'get_pattern_details.',
+    ),
   designer: z.string().nullable(),
   photo_url: z.string().nullable(),
 });

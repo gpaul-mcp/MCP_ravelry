@@ -83,6 +83,7 @@ describe('ravelry MCP server', () => {
 
     expect(tools.map(tool => tool.name).sort()).toEqual([
       'adjust_for_gauge',
+      'convert_yarn_amount',
       'count_stitches',
       'crafting_reference',
       'find_yarn_shops',
