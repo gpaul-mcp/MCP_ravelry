@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.7.0
+
+### Added
+
+- Units: `set_my_preferences` saves metric or imperial for signed-in users; the assistant is told to answer in those units, and results carry meters next to yards (`meterage`, `meters_per_skein`, stash `meters`, `meters_to_buy`, `meters_to_go`, `meters_per_day`). The carousel has an m / yd switch (defaults from the saved choice, then the device, then the language).
+- Row counters for anything, not only Ravelry projects: `project_name` (e.g. "Onigiri Pouch").
+
+### Changed
+
+- When the app shows widgets, results shown in the carousel or counter tell the assistant not to repeat them, so it answers in a sentence instead of listing everything again. Apps without widgets get the full text as before.
+
 ## 2.6.0
 
 ### Changed

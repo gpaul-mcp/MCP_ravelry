@@ -135,6 +135,7 @@ Starters: **Read me this row**, **Chart ↔ written instructions**, **Find a pat
 | `discover_patterns_for_me`   | New patterns from your own taste (techniques, categories, designers in your favorites), or to learn a technique you haven't used yet, leaving out what you already favorited, queued or made.                       |
 | `get_my_needles`             | Your needles and hooks; with a pattern, which sizes you have and what's missing (circulars or DPNs for patterns worked in the round).                                                                               |
 | `get_row_counter`            | A row counter card for a project: big + / − buttons you tap while crafting, several named counters (rows, repeats, decreases), a target and the position in the pattern repeat. Also "where am I?" across projects. |
+| `set_my_preferences`         | Your units: metric (meters, grams, cm) or imperial (yards, ounces, inches). The assistant answers in them and widgets show them.                                                                                    |
 | `update_row_counter`         | Changes a counter from the chat ("add 4 rows", "set a 48-row target", "8-row repeat"). Counters are kept on this server (encrypted), not on Ravelry; "Save to Ravelry log" writes the position to the project.      |
 
 Plus three extra starters: **What should I make next?**, **Use up my stash** and **Add yarn to my stash from a photo**.
@@ -156,7 +157,7 @@ That way "what can I make with my stash?" and "what can I start from my queue?" 
 In apps that support [MCP Apps](https://modelcontextprotocol.io/extensions/apps) (Claude, ChatGPT…), two kinds of results show up as interactive widgets; everything else stays plain text:
 
 - **Pattern carousel** (`search_patterns`, `discover_patterns_for_me`, `find_patterns_for_my_stash`): swipeable cards with the pattern photo (tap it to open Ravelry), difficulty, yarn weight, yardage, rating and price. Tap 👍 or 👎 on each one; your picks are shared with the assistant as you go, and **Find more like my 👍** asks it to dig deeper in that style. Each card also has **Similar**, **Details** and **+ Queue**.
-- **Row counter** (`get_row_counter`): big − / + buttons that respond instantly (saved in the background), keyboard support (↑ / ↓ / space), several counters per project, a target and the position in the pattern repeat, and **Save to Ravelry log**.
+- **Row counter** (`get_row_counter`), for a Ravelry project or anything you name: big − / + buttons that respond instantly (saved in the background), keyboard support (↑ / ↓ / space), several counters per project, a target and the position in the pattern repeat, and **Save to Ravelry log**.
 
 ## Run it yourself
 

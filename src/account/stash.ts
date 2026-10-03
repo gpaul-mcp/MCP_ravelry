@@ -2,7 +2,7 @@ import * as z from 'zod';
 
 import type { ApiPack, ApiPattern, ApiStash, ApiStashFull } from '../ravelry/types.ts';
 import { weightPermalink } from '../ravelry/vocabulary.ts';
-import { nonEmpty, yarnUrl } from '../tools/format.ts';
+import { nonEmpty, toMeters, yarnUrl } from '../tools/format.ts';
 import type { UserContext } from './context.ts';
 
 const METERS_TO_YARDS = 1.0936;
@@ -21,6 +21,8 @@ export const stashEntrySchema = z.object({
   skeins: z.number().nullable().describe('Skeins still free (not used by a project).'),
   yards: z.number().nullable().describe('Yards still free: total minus what projects use.'),
   total_yards: z.number().nullable().describe('Yards the entry started with.'),
+  meters: z.number().nullable().describe('Free length in meters.'),
+  total_meters: z.number().nullable(),
   grams: z.number().nullable(),
   in_projects: z
     .array(z.object({ project_id: z.number(), yards: z.number().nullable() }))
@@ -89,6 +91,8 @@ export function toStashEntry(stash: ApiStash | ApiStashFull): StashEntry {
     skeins: Number.isFinite(freeSkeins) && freeSkeins > 0 ? freeSkeins : null,
     yards: round(freeYards),
     total_yards: round(totalYards),
+    meters: toMeters(freeYards),
+    total_meters: toMeters(totalYards),
     // Ravelry does not always update grams on the remainder pack, so derive them from skeins.
     grams:
       freeSkeins && gramsPerSkein

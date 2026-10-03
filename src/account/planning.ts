@@ -4,7 +4,7 @@ import * as z from 'zod';
 import { RavelryApiError } from '../ravelry/client.ts';
 import type { ApiPattern } from '../ravelry/types.ts';
 import { weightPermalink } from '../ravelry/vocabulary.ts';
-import { patternUrl, yarnUrl } from '../tools/format.ts';
+import { patternUrl, toMeters, yarnUrl } from '../tools/format.ts';
 import { skeinsFor } from '../toolbox/math.ts';
 import type { UserContext } from './context.ts';
 import {
@@ -39,6 +39,7 @@ const LEFTOVER_YARDS = 60;
 const paceSchema = z
   .object({
     yards_per_day: z.number().describe('Median yards per calendar day, breaks included.'),
+    meters_per_day: z.number().optional(),
     slow: z.number(),
     fast: z.number(),
     based_on: z.number().describe('Finished projects used.'),
@@ -91,6 +92,7 @@ function registerEstimateFinish(server: McpServer, user: UserContext): void {
         what: z.string(),
         url: z.string().nullable(),
         yards_to_go: z.number(),
+        meters_to_go: z.number(),
         pace: paceSchema,
         estimate: z.object({
           days: z.number(),
@@ -103,6 +105,7 @@ function registerEstimateFinish(server: McpServer, user: UserContext): void {
             date: z.string(),
             days_available: z.number(),
             yards_per_day_needed: z.number(),
+            meters_per_day_needed: z.number(),
             verdict: z.enum(['comfortable', 'tight', 'unlikely', 'past']),
           })
           .nullable(),
@@ -190,6 +193,9 @@ function registerEstimateFinish(server: McpServer, user: UserContext): void {
               date: input.deadline,
               days_available: Math.max(0, available),
               yards_per_day_needed: Number.isFinite(needed) ? Math.round(needed * 10) / 10 : 0,
+              meters_per_day_needed: Number.isFinite(needed)
+                ? Math.round(needed * 0.9144 * 10) / 10
+                : 0,
               verdict,
             } as const;
           })()
@@ -199,7 +205,10 @@ function registerEstimateFinish(server: McpServer, user: UserContext): void {
         what,
         url,
         yards_to_go: Math.round(yardsToGo),
-        pace: pace.based_on ? pace : null,
+        meters_to_go: toMeters(yardsToGo) ?? 0,
+        pace: pace.based_on
+          ? { ...pace, meters_per_day: Math.round(pace.yards_per_day * 0.9144 * 10) / 10 }
+          : null,
         estimate: {
           days,
           finish_date: addDays(start, days),
@@ -259,6 +268,7 @@ function registerShoppingList(server: McpServer, user: UserContext): void {
               z.object({ stash_id: z.number(), yarn: z.string(), yards: z.number() }),
             ),
             yards_to_buy: z.number().nullable(),
+            meters_to_buy: z.number().nullable(),
             planned_yarn: z
               .object({
                 id: z.number(),
@@ -269,7 +279,9 @@ function registerShoppingList(server: McpServer, user: UserContext): void {
               .nullable(),
           }),
         ),
-        to_buy_by_weight: z.array(z.object({ weight: z.string(), yards: z.number() })),
+        to_buy_by_weight: z.array(
+          z.object({ weight: z.string(), yards: z.number(), meters: z.number() }),
+        ),
         unknown: z.array(z.string()).describe('Patterns without weight or yardage on Ravelry.'),
         notes: z.array(z.string()),
       }),
@@ -347,6 +359,7 @@ function registerShoppingList(server: McpServer, user: UserContext): void {
             yards_needed: need,
             from_stash: fromStash,
             yards_to_buy: need ? Math.round(missing) : null,
+            meters_to_buy: need ? toMeters(missing) : null,
             planned_yarn: yarn
               ? {
                   id: yarn.id,
@@ -372,10 +385,10 @@ function registerShoppingList(server: McpServer, user: UserContext): void {
       }
       return json({
         patterns: rows,
-        to_buy_by_weight: [...byWeight].map(([weight, yards]) => ({
-          weight,
-          yards: Math.round(yards * (1 + input.margin_percent / 100)),
-        })),
+        to_buy_by_weight: [...byWeight].map(([weight, yards]) => {
+          const withMargin = yards * (1 + input.margin_percent / 100);
+          return { weight, yards: Math.round(withMargin), meters: toMeters(withMargin) ?? 0 };
+        }),
         unknown,
         notes: [
           `Amounts to buy include a ${input.margin_percent}% margin per weight; buy each yarn from one dye lot.`,

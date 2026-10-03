@@ -189,6 +189,28 @@ button:disabled {
 
 /* ---- Pattern carousel ---- */
 
+.units {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.units .unit {
+  min-height: 0;
+  padding: 2px 10px;
+  border: 0;
+  border-radius: 0;
+  font-size: 12px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.units .unit[aria-pressed='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+
 .carousel {
   position: relative;
 }

@@ -4,7 +4,7 @@ import * as z from 'zod';
 import { attributeName } from '../ravelry/attributes.ts';
 import type { RavelryClient } from '../ravelry/client.ts';
 import type { ApiPattern } from '../ravelry/types.ts';
-import { categoryPath, nonEmpty, patternUrl, rounded, truncate } from './format.ts';
+import { categoryPath, metersRange, nonEmpty, patternUrl, rounded, truncate } from './format.ts';
 
 const MAX_IDS = 20;
 const MAX_NOTES_LENGTH = 4_000;
@@ -36,6 +36,7 @@ const patternSchema = z.object({
   favorites_count: z.number().nullable(),
   yarn_weight: z.string().nullable(),
   yardage: z.string().nullable(),
+  meterage: z.string().nullable().describe('The yardage in meters, e.g. "119–558 m".'),
   gauge: z.string().nullable(),
   gauge_per_10cm: z
     .object({ stitches: z.number(), rows: z.number().nullable() })
@@ -123,6 +124,7 @@ function toDetails(pattern: ApiPattern): PatternDetails {
     favorites_count: pattern.favorites_count ?? null,
     yarn_weight: nonEmpty(pattern.yarn_weight_description) ?? nonEmpty(pattern.yarn_weight?.name),
     yardage,
+    meterage: metersRange(nonEmpty(pattern.yardage ?? null), nonEmpty(pattern.yardage_max ?? null)),
     gauge: nonEmpty(pattern.gauge_description),
     gauge_per_10cm: gaugePer10cm(pattern),
     terminology: terminology(pattern),

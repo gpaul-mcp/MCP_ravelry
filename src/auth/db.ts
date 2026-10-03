@@ -52,6 +52,13 @@ export function openDatabase(path: string): DatabaseSync {
       PRIMARY KEY (owner, project_id)
     );
 
+    -- Per-user preferences (e.g. units). Owner is a hash, data encrypted.
+    CREATE TABLE IF NOT EXISTS preferences (
+      owner       TEXT PRIMARY KEY,
+      data        TEXT NOT NULL,
+      updated_at  INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL

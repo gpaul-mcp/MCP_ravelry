@@ -219,6 +219,7 @@ describe('toolbox tools', () => {
     const result = await tools.callTool({ name: 'get_pattern_details', arguments: { ids: [5] } });
     expect((result.structuredContent as { patterns: unknown[] }).patterns[0]).toMatchObject({
       gauge_per_10cm: { stitches: 20, rows: 28 },
+      meterage: '165–229 m',
       terminology: 'US',
       attributes: ['worked in the round', 'cables'],
     });

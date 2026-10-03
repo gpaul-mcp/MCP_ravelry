@@ -5,8 +5,8 @@ import { attributeName, PATTERN_ATTRIBUTES, resolveAttribute } from '../ravelry/
 import type { ApiPattern, ApiPatternListItem } from '../ravelry/types.ts';
 import { resolveCategory, weightPermalink } from '../ravelry/vocabulary.ts';
 import { categoryPath, nonEmpty, range, rounded } from '../tools/format.ts';
-import { patternSummarySchema, toPatternSummary } from '../tools/search-patterns.ts';
-import { VIEW_META } from '../view.ts';
+import { patternSummarySchema, toPatternSummary, withUnits } from '../tools/search-patterns.ts';
+import { CAROUSEL_NOTE, VIEW_META, widgetResult } from '../view.ts';
 import type { UserContext } from './context.ts';
 import {
   count,
@@ -17,11 +17,6 @@ import {
   loadQueue,
 } from './data.ts';
 import { estimateLevel } from './insights.ts';
-
-const json = <T extends Record<string, unknown>>(output: T) => ({
-  content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-  structuredContent: output,
-});
 
 /** Techniques worth learning, easiest first within each craft (Ravelry attribute permalinks). */
 const SKILLS: { permalink: string; craft: 'knitting' | 'crochet'; tier: 1 | 2 | 3 }[] = [
@@ -128,6 +123,7 @@ export function registerStyleTools(server: McpServer, user: UserContext): void {
         }),
         goal: z.string(),
         skill: z.string().nullable(),
+        units: z.enum(['metric', 'imperial']).optional(),
         patterns: z.array(
           patternSummarySchema.extend({
             difficulty: z.number().nullable(),
@@ -278,16 +274,21 @@ export function registerStyleTools(server: McpServer, user: UserContext): void {
         ).map(p => [p.id, p]),
       );
 
-      return json({
-        profile,
-        goal: input.goal,
-        skill,
-        patterns: picks.map(({ pattern, why }) => ({
-          ...toPatternSummary(pattern),
-          difficulty: rounded(nonEmpty(details.get(pattern.id)?.difficulty_average ?? null)),
-          why,
-        })),
-      });
+      return widgetResult(
+        server,
+        {
+          profile,
+          ...withUnits(user.preferences?.get(user.username).units),
+          goal: input.goal,
+          skill,
+          patterns: picks.map(({ pattern, why }) => ({
+            ...toPatternSummary(pattern),
+            difficulty: rounded(nonEmpty(details.get(pattern.id)?.difficulty_average ?? null)),
+            why,
+          })),
+        },
+        CAROUSEL_NOTE,
+      );
     },
   );
 }

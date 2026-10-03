@@ -11,7 +11,7 @@ import {
   YARN_WEIGHTS,
 } from '../ravelry/vocabulary.ts';
 import { patternUrl, range } from './format.ts';
-import { VIEW_META } from '../view.ts';
+import { CAROUSEL_NOTE, VIEW_META, widgetResult } from '../view.ts';
 
 const inputSchema = z
   .object({
@@ -139,6 +139,7 @@ export function toPatternSummary(
 
 const outputSchema = z.object({
   patterns: z.array(patternSummarySchema),
+  units: z.enum(['metric', 'imperial']).optional().describe("The signed-in user's units."),
   category: z.string().nullable().describe('The Ravelry category the search was filtered to.'),
   attributes: z
     .array(z.string())
@@ -150,7 +151,11 @@ const outputSchema = z.object({
 
 type SearchOutput = z.infer<typeof outputSchema>;
 
-export function registerSearchPatterns(server: McpServer, ravelry: RavelryClient): void {
+export function registerSearchPatterns(
+  server: McpServer,
+  ravelry: RavelryClient,
+  units: () => 'metric' | 'imperial' | undefined = () => undefined,
+): void {
   server.registerTool(
     'search_patterns',
     {
@@ -197,6 +202,7 @@ export function registerSearchPatterns(server: McpServer, ravelry: RavelryClient
 
       const output: SearchOutput = {
         patterns: response.patterns.map(toPatternSummary),
+        ...withUnits(units()),
         category: category ?? null,
         attributes: attributes.map(a => a.name),
         page: response.paginator.page,
@@ -204,10 +210,10 @@ export function registerSearchPatterns(server: McpServer, ravelry: RavelryClient
         total_results: response.paginator.results,
       };
 
-      return {
-        content: [{ type: 'text', text: JSON.stringify(output) }],
-        structuredContent: output,
-      };
+      return widgetResult(server, output, CAROUSEL_NOTE);
     },
   );
 }
+
+/** Only include the units when the user chose some (the widget defaults from the locale). */
+export const withUnits = (units: 'metric' | 'imperial' | undefined) => (units ? { units } : {});

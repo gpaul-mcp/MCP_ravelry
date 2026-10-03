@@ -30,6 +30,7 @@ interface PatternFacts {
   difficulty: number | null;
   yarn_weight: string | null;
   yardage: string | null;
+  meterage: string | null;
   rating: number | null;
   price: string | null;
 }
@@ -42,7 +43,7 @@ interface CounterView {
 }
 
 interface CounterData {
-  project: { id: number; name: string; url: string | null } | null;
+  project: { id: number | null; name: string; url: string | null } | null;
   counters: CounterView[];
   other_projects: { id: number; name: string; summary: string }[];
 }
@@ -95,6 +96,58 @@ function show(children: Child[]) {
   for (const child of children) if (child) root.append(child);
 }
 
+// ---- Units ----
+
+type Units = 'metric' | 'imperial';
+const UNITS_KEY = 'ravelry-units';
+
+function storedUnits(): Units | null {
+  try {
+    const value = localStorage.getItem(UNITS_KEY);
+    return value === 'metric' || value === 'imperial' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The user's saved choice, else this device's, else the host's locale (US → yards). */
+function initialUnits(fromServer: unknown): Units {
+  if (fromServer === 'metric' || fromServer === 'imperial') return fromServer;
+  const locale = app.getHostContext()?.locale ?? navigator.language;
+  return storedUnits() ?? (/^en-US|^en-LR|^my/i.test(locale) ? 'imperial' : 'metric');
+}
+
+let units: Units = 'metric';
+const factsCache = new Map<number, PatternFacts>();
+const factRows = new Map<number, HTMLElement>();
+
+function unitsToggle(): HTMLElement {
+  const button = (value: Units, text: string) => {
+    const b = h('button', { class: 'unit', title: value === 'metric' ? 'Meters' : 'Yards' }, text);
+    b.setAttribute('aria-pressed', String(units === value));
+    b.addEventListener('click', () => {
+      if (units === value) return;
+      units = value;
+      try {
+        localStorage.setItem(UNITS_KEY, value);
+      } catch {
+        // Private mode: the choice lasts until the widget closes.
+      }
+      for (const other of b.parentElement?.querySelectorAll('button') ?? []) {
+        other.setAttribute('aria-pressed', String(other === b));
+      }
+      paintFacts();
+      shareReactions();
+      // Signed-in users keep it as their preference (the public server has no such tool).
+      app
+        .callServerTool({ name: 'set_my_preferences', arguments: { units: value } })
+        .catch(() => undefined);
+    });
+    return b;
+  };
+  return h('span', { class: 'units' }, button('metric', 'm'), button('imperial', 'yd'));
+}
+
 // ---- Pattern carousel ----
 
 type Reaction = 'like' | 'dislike';
@@ -113,6 +166,7 @@ function shareReactions() {
   const text = [
     liked.length > 0 && `Liked in the pattern widget: ${liked.map(label).join(', ')}.`,
     disliked.length > 0 && `Not for them: ${disliked.map(label).join(', ')}.`,
+    `They read lengths in ${units === 'metric' ? 'meters' : 'yards'}.`,
   ]
     .filter(Boolean)
     .join(' ');
@@ -122,6 +176,7 @@ function shareReactions() {
       structuredContent: {
         liked: liked.map(p => p.id),
         not_for_me: disliked.map(p => p.id),
+        units,
       },
     })
     .catch(() => undefined);
@@ -276,6 +331,7 @@ function patternCard(pattern: PatternSummary, facts: Map<number, HTMLElement>): 
 
 /** Fills difficulty, yarn weight and yardage on the cards with one details call. */
 function loadFacts(facts: Map<number, HTMLElement>) {
+  for (const [id, row] of facts) factRows.set(id, row);
   const ids = [...facts.keys()].slice(0, 20);
   if (ids.length === 0) return;
   app
@@ -283,23 +339,27 @@ function loadFacts(facts: Map<number, HTMLElement>) {
     .then(result => {
       const patterns = (result.structuredContent as { patterns?: PatternFacts[] } | undefined)
         ?.patterns;
-      for (const pattern of patterns ?? []) {
-        const row = facts.get(pattern.id);
-        if (!row) continue;
-        row.replaceChildren(
-          ...[
-            pattern.difficulty ? chip(`Difficulty ${pattern.difficulty}/10`) : null,
-            pattern.yarn_weight
-              ? chip(pattern.yarn_weight.replace(/\s*\(.*\)$/, ''), 'accent')
-              : null,
-            pattern.yardage ? chip(pattern.yardage) : null,
-            pattern.rating ? chip(`★ ${pattern.rating}`) : null,
-            pattern.price ? chip(pattern.price) : null,
-          ].filter((node): node is HTMLSpanElement => node !== null),
-        );
-      }
+      for (const pattern of patterns ?? []) factsCache.set(pattern.id, pattern);
+      paintFacts();
     })
     .catch(() => undefined);
+}
+
+function paintFacts() {
+  for (const [id, row] of factRows) {
+    const pattern = factsCache.get(id);
+    if (!pattern) continue;
+    const length = units === 'metric' ? (pattern.meterage ?? pattern.yardage) : pattern.yardage;
+    row.replaceChildren(
+      ...[
+        pattern.difficulty ? chip(`Difficulty ${pattern.difficulty}/10`) : null,
+        pattern.yarn_weight ? chip(pattern.yarn_weight.replace(/\s*\(.*\)$/, ''), 'accent') : null,
+        length ? chip(length) : null,
+        pattern.rating ? chip(`★ ${pattern.rating}`) : null,
+        pattern.price ? chip(pattern.price) : null,
+      ].filter((node): node is HTMLSpanElement => node !== null),
+    );
+  }
 }
 
 function carousel(patterns: PatternSummary[], facts: Map<number, HTMLElement>): HTMLElement {
@@ -337,6 +397,8 @@ function carousel(patterns: PatternSummary[], facts: Map<number, HTMLElement>): 
 }
 
 function renderPatterns(data: Data): Child[] {
+  units = initialUnits(data.units);
+  factRows.clear();
   const facts = new Map<number, HTMLElement>();
   footer = h('div', { class: 'footer' });
   const sections: Child[] = [];
@@ -349,13 +411,17 @@ function renderPatterns(data: Data): Child[] {
       stash: { yarn: string }[];
       patterns: PatternSummary[];
     }[];
-    sections.push(h('header', {}, h('h2', {}, 'Ideas for your stash')));
+    sections.push(h('header', {}, h('h2', {}, 'Ideas for your stash'), unitsToggle()));
     for (const group of groups) {
       sections.push(
         h(
           'h3',
           {},
-          `${group.weight} · ${group.total_yards.toLocaleString()} yd`,
+          `${group.weight} · ${
+            units === 'metric'
+              ? `${Math.round(group.total_yards * 0.9144).toLocaleString()} m`
+              : `${group.total_yards.toLocaleString()} yd`
+          }`,
           h('span', { class: 'sub' }, ` from ${group.stash.map(s => s.yarn).join(', ')}`),
         ),
         group.patterns.length
@@ -384,6 +450,7 @@ function renderPatterns(data: Data): Child[] {
         {},
         h('h2', {}, title),
         filters.length > 0 && h('span', { class: 'sub' }, filters.join(' · ')),
+        unitsToggle(),
       ),
       patterns.length
         ? carousel(patterns, facts)
@@ -422,6 +489,10 @@ let counterState: CounterData | null = null;
 const asCounter = (value: unknown) => value as CounterData;
 const pending = new Map<string, ReturnType<typeof setTimeout>>();
 
+/** Ravelry projects (and saved free counters) have an id; a new free counter goes by its name. */
+const projectRef = (project: { id: number | null; name: string }) =>
+  project.id === null ? { project_name: project.name } : { project_id: project.id };
+
 /** Taps change the screen at once; the server gets the final value shortly after. */
 function saveCounter(counter: CounterView) {
   const project = counterState?.project;
@@ -435,7 +506,7 @@ function saveCounter(counter: CounterView) {
         .callServerTool({
           name: 'update_row_counter',
           arguments: {
-            project_id: project.id,
+            ...projectRef(project),
             counter: counter.name,
             action: 'set',
             value: counter.value,
@@ -455,7 +526,10 @@ function configure(args: Record<string, unknown>) {
   const project = counterState?.project;
   if (!project) return;
   app
-    .callServerTool({ name: 'update_row_counter', arguments: { project_id: project.id, ...args } })
+    .callServerTool({
+      name: 'update_row_counter',
+      arguments: { ...projectRef(project), ...args },
+    })
     .then(result => {
       if (!result.isError) showCounter(asCounter(result.structuredContent));
     })
@@ -669,6 +743,8 @@ function renderCounter(data: CounterData): Child[] {
       { class: 'footer' },
       h('div', { class: 'add' }, name, h('button', { onclick: addCounter }, 'Add')),
       data.counters.length > 0 &&
+        project.id !== null &&
+        project.id > 0 &&
         h(
           'button',
           {

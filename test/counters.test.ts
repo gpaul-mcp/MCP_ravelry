@@ -5,6 +5,7 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CounterStore } from '../src/account/counters.ts';
+import { PreferenceStore } from '../src/account/preferences.ts';
 import { openDatabase } from '../src/auth/db.ts';
 import { RavelryClient } from '../src/ravelry/client.ts';
 import { createServer } from '../src/server.ts';
@@ -18,7 +19,9 @@ afterEach(async () => {
 
 function setup() {
   const db = openDatabase(':memory:');
-  const store = new CounterStore(db, randomBytes(32));
+  const key = randomBytes(32);
+  const store = new CounterStore(db, key);
+  const preferences = new PreferenceStore(db, key);
   const fetchMock = vi.fn<typeof fetch>(input => {
     const match = /^\/projects\/knitter\/(\d+)\.json$/i.exec(new URL(input).pathname);
     return Promise.resolve(
@@ -34,10 +37,15 @@ function setup() {
         : jsonResponse({}, 404),
     );
   });
-  return { db, store, fetchMock };
+  return { db, store, preferences, fetchMock };
 }
 
-async function connect(store: CounterStore, fetchMock: typeof fetch) {
+async function connect(
+  store: CounterStore,
+  fetchMock: typeof fetch,
+  preferences?: PreferenceStore,
+  capabilities: Record<string, unknown> = {},
+) {
   const ravelry = new RavelryClient({
     authorization: () => Promise.resolve('Bearer t'),
     fetch: fetchMock,
@@ -48,6 +56,7 @@ async function connect(store: CounterStore, fetchMock: typeof fetch) {
       ravelry,
       publicRavelry: ravelry,
       counters: store,
+      preferences,
     }),
   );
   const authInfo = {
@@ -58,7 +67,7 @@ async function connect(store: CounterStore, fetchMock: typeof fetch) {
   };
   const client = new Client(
     { name: 'test', version: '1.0.0' },
-    { versionNegotiation: { mode: 'auto' } },
+    { versionNegotiation: { mode: 'auto' }, capabilities },
   );
   await client.connect(
     new StreamableHTTPClientTransport(new URL('http://test.local/account/mcp'), {
@@ -69,16 +78,18 @@ async function connect(store: CounterStore, fetchMock: typeof fetch) {
     await client.close();
     await handler.close();
   };
+  const raw = (name: string, args: Record<string, unknown>) =>
+    client.callTool({ name, arguments: args });
   const call = async (name: string, args: Record<string, unknown>) => {
-    const result = await client.callTool({ name, arguments: args });
+    const result = await raw(name, args);
     if (result.isError) throw new Error(JSON.stringify(result.content));
     return result.structuredContent as {
-      project: { id: number; name: string } | null;
+      project: { id: number | null; name: string } | null;
       counters: Record<string, unknown>[];
       other_projects: { id: number; summary: string }[];
     };
   };
-  return call;
+  return Object.assign(call, { raw, instructions: () => client.getInstructions() });
 }
 
 describe('row counters', () => {
@@ -147,6 +158,53 @@ describe('row counters', () => {
     const output = await call('get_row_counter', { project_id: 5 });
     expect(output).toMatchObject({ project: { id: 5, name: 'Project 5' }, counters: [] });
     expect(store.get('knitter', 5)).toBeUndefined();
+  });
+
+  it('keeps counters for things that are not Ravelry projects, found by name', async () => {
+    const { store, fetchMock } = setup();
+    const call = await connect(store, fetchMock);
+
+    const empty = await call('get_row_counter', { project_name: 'Onigiri Pouch' });
+    expect(empty).toMatchObject({ project: { id: null, name: 'Onigiri Pouch' }, counters: [] });
+
+    const first = await call('update_row_counter', { project_name: 'Onigiri Pouch', amount: 5 });
+    const second = await call('update_row_counter', { project_name: 'onigiri pouch' });
+    const other = await call('update_row_counter', { project_name: 'Scarf', action: 'configure' });
+
+    expect(first.project?.id).toBe(-1);
+    expect(second).toMatchObject({ project: { id: -1 }, counters: [{ name: 'Rows', value: 6 }] });
+    expect(other.project?.id).toBe(-2);
+    // Never looked up on Ravelry.
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const byId = await call('update_row_counter', { project_id: -1, action: 'subtract' });
+    expect(byId.counters[0]).toMatchObject({ value: 5 });
+  });
+
+  it('asks the model not to repeat what the widget shows, only for clients with widgets', async () => {
+    const { store, fetchMock } = setup();
+    const plain = await connect(store, fetchMock);
+    expect((await plain.raw('get_row_counter', {})).content).toHaveLength(1);
+    await cleanup?.();
+
+    const withWidgets = await connect(store, fetchMock, undefined, {
+      extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } },
+    });
+    const content = (await withWidgets.raw('get_row_counter', {})).content as { text: string }[];
+    expect(content).toHaveLength(2);
+    expect(content[1]?.text).toMatch(/Do not repeat the numbers/);
+  });
+
+  it('remembers the units and tells the model', async () => {
+    const { store, preferences, fetchMock } = setup();
+    const first = await connect(store, fetchMock, preferences);
+    expect(first.instructions()).toMatch(/has not chosen units yet/);
+    await first.raw('set_my_preferences', { units: 'metric' });
+    await cleanup?.();
+
+    const next = await connect(store, fetchMock, preferences);
+    expect(next.instructions()).toMatch(/METRIC/);
+    expect(preferences.get('knitter')).toEqual({ units: 'metric' });
   });
 
   it('stores counters encrypted, under a hashed owner', () => {
