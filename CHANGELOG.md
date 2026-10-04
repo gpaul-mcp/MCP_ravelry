@@ -4,6 +4,7 @@
 
 ### Added
 
+- Docs: [everything the server can do](docs/capabilities.md), by goal, and [a Claude project guide](docs/claude-project.md) with instructions to paste and an About me template.
 - Grams: stash yarn recorded only by weight gets a length (the yarn's own grams-to-length ratio, else a typical one for its weight, flagged by `length_source`), so it counts in every stash tool; the shopping list adds grams to buy; `convert_yarn_amount` converts grams ↔ meters ↔ yards ↔ skeins.
 
 ### Fixed

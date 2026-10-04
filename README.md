@@ -1,6 +1,6 @@
 # Ravelry MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI assistants search for, explore and compare knitting and crochet patterns on [Ravelry](https://www.ravelry.com).
+A [Model Context Protocol](https://modelcontextprotocol.io) server that turns AI assistants into a knitting and crochet companion, with [Ravelry](https://www.ravelry.com) as the backbone: pattern and yarn search with a photo carousel, your stash, queue and projects, exact calculators, and a row counter.
 
 [![CI](https://github.com/gpaul-mcp/MCP_ravelry/actions/workflows/ci.yml/badge.svg)](https://github.com/gpaul-mcp/MCP_ravelry/actions/workflows/ci.yml)
 [![MCP SDK v2](https://img.shields.io/badge/MCP_SDK-v2-blue)](https://ts.sdk.modelcontextprotocol.io/v2/)
@@ -48,6 +48,8 @@ claude mcp add --transport http ravelry https://ravelry-mcp.gonz-paul.dev/mcp
 }
 ```
 
+**New here?** [Everything it can do](docs/capabilities.md), organised by what you want to do, and [how to set up a Claude project as your knitting & crochet guide](docs/claude-project.md) (instructions to paste included).
+
 Then try one of the [example prompts](#tools), or the built-in starters: **Find a pattern**, **Substitute a yarn**, **What can I make with this yarn?** and **Yarn shops near me**.
 
 > The hosted server only reads public Ravelry data with this project's read-only API key (with Ravelry's permission), stores nothing about your conversations, and allows 60 requests per minute per user. Prefer to run your own? See [Run it yourself](#run-it-yourself).
@@ -60,7 +62,7 @@ To also let your assistant read **your** stash, queue, projects, favorites and l
 https://ravelry-mcp.gonz-paul.dev/account/mcp
 ```
 
-The first time, your assistant opens a page where you sign in with Ravelry, then confirm on a second page which app gets access. Access is **read-only**: nothing can be changed on Ravelry. You can revoke it at any time from your Ravelry account's app settings.
+The first time, your assistant opens a page where you sign in with Ravelry, then confirm on a second page which app gets access. Reading is the default; changing your stash, queue and projects needs a second permission on the same page, and the assistant confirms each change with you first. You can revoke access at any time from your Ravelry account's app settings.
 
 Then you can ask things like:
 
