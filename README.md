@@ -347,3 +347,38 @@ manifest.json                   # MCP Bundle manifest
 ## License
 
 MIT, see [LICENSE](LICENSE).
+
+<!-- PORTFOLIO_METADATA_START -->
+<div align="center">
+  <h3>📊 Portfolio Metadata</h3>
+  <p><em>This section is used for automatic project information extraction</em></p>
+</div>
+
+### 📜 Project Overview
+
+Ravelry MCP Server turns AI assistants like Claude and ChatGPT into a knitting and crochet companion, with Ravelry as the backbone. It searches patterns and yarns, reads and updates a maker's own stash, queue and projects through "Sign in with Ravelry", does every crafting calculation exactly, and shows interactive widgets in the chat: a photo carousel of patterns and a row counter. A hosted instance runs at ravelry-mcp.gonz-paul.dev.
+
+### 🎯 Key Features
+
+- Pattern search by technique, yarn weight, yardage, difficulty and fit, shown as a photo carousel with 👍/👎 feedback the assistant uses to refine the next search
+- Personal Ravelry data through OAuth: stash, queue, projects, favorites, library and needles, with project tracking that keeps the stash accurate
+- Exact calculators the assistant calls instead of guessing: gauge adjustment, even increases and decreases, yarn quantities, grams ↔ meters, and a stitch counter that checks written pattern rows
+- Planning from the user's own data: finish-date predictions from their pace, shopping lists after the stash, queue and stash check-ups, pattern suggestions to learn new skills
+- Interactive row counter widget with instant taps saved server-side, for Ravelry projects or anything else
+- Metric or imperial preference, US/UK terminology, needle size and yarn weight conversions
+
+### 🛠️ Technology Stack
+
+- TypeScript
+- Node.js
+- Model Context Protocol (MCP) TypeScript SDK v2
+- MCP Apps (interactive widgets)
+- OAuth 2.1 (oidc-provider, PKCE, dynamic client registration)
+- SQLite with AES-256-GCM encryption
+- Zod
+- Vite
+- Vitest
+- Docker and Cloudflare Tunnel
+- Ravelry API
+
+<!-- PORTFOLIO_METADATA_END -->
