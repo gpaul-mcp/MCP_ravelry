@@ -106,6 +106,34 @@ describe('count_stitches parsing', () => {
     expect(row.stitches_after).toBe(20);
   });
 
+  it('counts shaping repeated to the end by its own ratio', () => {
+    const rows = countRows(
+      ['inc around (12)', '2 sc in each st around (24)', 'dec around (12)'],
+      6,
+      'crochet',
+    );
+    expect(rows.map(r => r.stitches_after)).toEqual([12, 24, 12]);
+    expect(rows.flatMap(r => r.warnings)).toEqual([]);
+    expect(countRow('k2tog to end', 9, 'knitting').warnings[0]).toMatch(/1 over/);
+  });
+
+  it('understands turning chains that count, short rows and "work in pattern"', () => {
+    expect(
+      countRow(
+        'Ch 3 (counts as dc), dc in next st, *ch 1, sk 1, dc in next 2 sts; rep from * across, turn.',
+        20,
+        'crochet',
+      ),
+    ).toMatchObject({ stitches_used: 20, stitches_after: 20, warnings: [] });
+    expect(countRow('k2, w&t, p2, w&t', 19, 'knitting')).toMatchObject({
+      stitches_after: 19,
+      warnings: [],
+      notes: [expect.stringMatching(/15 stitches stay unworked/)],
+    });
+    expect(countRow('k1, work in patt to last st, k1', 19, 'knitting').stitches_after).toBe(19);
+    expect(countRow('knit the knits and purl the purls', 19, 'knitting').warnings).toEqual([]);
+  });
+
   it('asks for the stitch count when a repeat runs to the end', () => {
     const row = countRow('*k1, p1; rep from * to end', null, 'knitting');
     expect(row.stitches_after).toBeNull();
@@ -191,6 +219,7 @@ describe('toolbox tools', () => {
     const result = await tools.callTool({ name: 'get_pattern_details', arguments: { ids: [5] } });
     expect((result.structuredContent as { patterns: unknown[] }).patterns[0]).toMatchObject({
       gauge_per_10cm: { stitches: 20, rows: 28 },
+      meterage: '165–229 m',
       terminology: 'US',
       attributes: ['worked in the round', 'cables'],
     });
@@ -214,6 +243,48 @@ describe('toolbox tools', () => {
       adjusted_counts: [{ label: 'cast on', stitches: 100, adjusted_stitches: 112 }],
       measurements_as_written: [{ label: 'circumference', pattern: 50, yours: 45.5 }],
     });
+  });
+
+  it('tells free-online patterns with a paid PDF apart from free ones', async () => {
+    const blogPattern: ApiPattern = {
+      ...pattern,
+      free: true,
+      price: 4.5,
+      currency: 'CAD',
+      url: 'https://designer.example/free-pattern',
+      download_location: {
+        type: 'ravelry',
+        free: false,
+        url: 'https://www.ravelry.com/purchase/x',
+      },
+    };
+    const tools = await client({ '/patterns.json': { patterns: { '5': blogPattern } } });
+    const result = await tools.callTool({ name: 'get_pattern_details', arguments: { ids: [5] } });
+    expect((result.structuredContent as { patterns: unknown[] }).patterns[0]).toMatchObject({
+      free: true,
+      access: 'free_online',
+      price: '4.5 CAD',
+      free_url: 'https://designer.example/free-pattern',
+    });
+  });
+
+  it('converts grams to length with the yarn ratio, or estimates from the weight', async () => {
+    const tools = await client({ '/yarns.json': { yarns: { '7': yarn } } });
+    const exact = await tools.callTool({
+      name: 'convert_yarn_amount',
+      arguments: { grams: 200, yarn_id: 7 },
+    });
+    expect(exact.structuredContent).toMatchObject({
+      yards: 420,
+      meters: 384,
+      skeins: 2,
+      estimated: false,
+    });
+    const typical = await tools.callTool({
+      name: 'convert_yarn_amount',
+      arguments: { meters: 300, weight: 'dk' },
+    });
+    expect(typical.structuredContent).toMatchObject({ yards: 328, grams: 131, estimated: true });
   });
 
   it('works out skeins for the smallest and largest size', async () => {

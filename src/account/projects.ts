@@ -5,7 +5,6 @@ import { ACCOUNT_SCOPE, WRITE_SCOPE } from '../auth/server.ts';
 import { RavelryApiError } from '../ravelry/client.ts';
 import type { ApiPack, ApiProjectFull, ApiStashFull } from '../ravelry/types.ts';
 import { nonEmpty, patternUrl, truncate } from '../tools/format.ts';
-import { VIEW_META } from '../view.ts';
 import type { UserContext } from './context.ts';
 import { patternYardage, toStashEntry } from './stash.ts';
 
@@ -131,7 +130,6 @@ export function registerProjectTools(server: McpServer, user: UserContext): void
         project_id: z.number().int().positive().describe('From get_my_projects.'),
       }),
       outputSchema: projectSchema,
-      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ project_id }, ctx) => {
@@ -183,7 +181,6 @@ export function registerProjectTools(server: McpServer, user: UserContext): void
           path: ['pattern_id'],
         }),
       outputSchema: projectSchema.extend({ removed_from_queue: z.boolean() }),
-      _meta: VIEW_META,
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
@@ -271,7 +268,6 @@ export function registerProjectTools(server: McpServer, user: UserContext): void
         date: z.iso.date().optional().describe('YYYY-MM-DD, default today.'),
       }),
       outputSchema: projectSchema,
-      _meta: VIEW_META,
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
@@ -338,7 +334,6 @@ export function registerProjectTools(server: McpServer, user: UserContext): void
         marked_used_up: z.array(z.number()),
         released_yarn: z.boolean(),
       }),
-      _meta: VIEW_META,
       annotations: {
         readOnlyHint: false,
         destructiveHint: true,

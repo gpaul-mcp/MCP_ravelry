@@ -235,6 +235,8 @@ export interface ApiQueuedProject {
   name?: string | null;
   pattern_id?: number | string | null;
   pattern_name?: string | null;
+  /** The pattern name alone; pattern_name may read "Name by Designer". */
+  short_pattern_name?: string | null;
   pattern_author_name?: string | null;
   yarn_id?: number | string | null;
   yarn_name?: string | null;
@@ -269,6 +271,7 @@ export interface ApiProject {
   tag_names?: string[];
   links?: { self?: { href?: string } } | null;
   first_photo?: ApiPhoto | null;
+  user?: { username?: string | null } | null;
 }
 
 export interface ApiProjectsResponse {

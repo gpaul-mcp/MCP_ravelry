@@ -4,8 +4,7 @@ import * as z from 'zod';
 import { attributeName } from '../ravelry/attributes.ts';
 import type { RavelryClient } from '../ravelry/client.ts';
 import type { ApiPattern } from '../ravelry/types.ts';
-import { categoryPath, nonEmpty, patternUrl, rounded, truncate } from './format.ts';
-import { VIEW_META } from '../view.ts';
+import { categoryPath, metersRange, nonEmpty, patternUrl, rounded, truncate } from './format.ts';
 
 const MAX_IDS = 20;
 const MAX_NOTES_LENGTH = 4_000;
@@ -26,8 +25,15 @@ const patternSchema = z.object({
   craft: z.string().nullable(),
   pattern_type: z.string().nullable(),
   categories: z.array(z.string()),
-  free: z.boolean(),
-  price: z.string().nullable().describe('Price with currency, null when free or unknown.'),
+  free: z.boolean().describe("Ravelry's flag; true also when only the online version is free."),
+  access: z
+    .enum(['free', 'free_online', 'paid'])
+    .describe(
+      "free: free to download; free_online: free on the designer's website (free_url) but the " +
+        'PDF costs `price`; paid: must be bought.',
+    ),
+  price: z.string().nullable().describe('Price of the pattern or its PDF, with currency.'),
+  free_url: z.string().nullable().describe('Where to read it for free, for free_online.'),
   download_url: z.string().nullable(),
   published: z.string().nullable(),
   difficulty: z.number().nullable().describe('Average difficulty rating, 1 (easy) to 10 (hard).'),
@@ -37,6 +43,7 @@ const patternSchema = z.object({
   favorites_count: z.number().nullable(),
   yarn_weight: z.string().nullable(),
   yardage: z.string().nullable(),
+  meterage: z.string().nullable().describe('The yardage in meters, e.g. "119–558 m".'),
   gauge: z.string().nullable(),
   gauge_per_10cm: z
     .object({ stitches: z.number(), rows: z.number().nullable() })
@@ -75,7 +82,6 @@ export function registerGetPatternDetails(server: McpServer, ravelry: RavelryCli
         'terminology (US/UK), and the designer notes.',
       inputSchema,
       outputSchema,
-      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ ids }, ctx) => {
@@ -112,10 +118,12 @@ function toDetails(pattern: ApiPattern): PatternDetails {
     pattern_type: pattern.pattern_type?.name ?? null,
     categories: (pattern.pattern_categories ?? []).map(categoryPath),
     free: pattern.free,
+    access: access(pattern),
     price:
-      !pattern.free && pattern.price != null
+      access(pattern) !== 'free' && pattern.price != null
         ? `${pattern.price} ${pattern.currency ?? ''}`.trim()
         : null,
+    free_url: access(pattern) === 'free_online' ? nonEmpty(pattern.url ?? null) : null,
     download_url: pattern.download_location?.url ?? pattern.url ?? null,
     published: pattern.published ?? null,
     difficulty: rounded(nonEmpty(pattern.difficulty_average)),
@@ -125,6 +133,7 @@ function toDetails(pattern: ApiPattern): PatternDetails {
     favorites_count: pattern.favorites_count ?? null,
     yarn_weight: nonEmpty(pattern.yarn_weight_description) ?? nonEmpty(pattern.yarn_weight?.name),
     yardage,
+    meterage: metersRange(nonEmpty(pattern.yardage ?? null), nonEmpty(pattern.yardage_max ?? null)),
     gauge: nonEmpty(pattern.gauge_description),
     gauge_per_10cm: gaugePer10cm(pattern),
     terminology: terminology(pattern),
@@ -156,4 +165,14 @@ function terminology(pattern: ApiPattern): 'US' | 'UK' | 'US and UK' | null {
   if (pattern.has_uk_terminology) return 'UK';
   if (pattern.has_us_terminology) return 'US';
   return null;
+}
+
+/**
+ * Ravelry flags a pattern `free` when any version is, e.g. a free blog post
+ * whose ad-free PDF is sold on Ravelry; the download tells them apart.
+ */
+export function access(pattern: ApiPattern): 'free' | 'free_online' | 'paid' {
+  if (!pattern.free) return 'paid';
+  const download = pattern.download_location;
+  return download && !download.free && pattern.price ? 'free_online' : 'free';
 }

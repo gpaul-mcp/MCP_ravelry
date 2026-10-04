@@ -1,6 +1,6 @@
 # Ravelry MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI assistants search for, explore and compare knitting and crochet patterns on [Ravelry](https://www.ravelry.com).
+A [Model Context Protocol](https://modelcontextprotocol.io) server that turns AI assistants into a knitting and crochet companion, with [Ravelry](https://www.ravelry.com) as the backbone: pattern and yarn search with a photo carousel, your stash, queue and projects, exact calculators, and a row counter.
 
 [![CI](https://github.com/gpaul-mcp/MCP_ravelry/actions/workflows/ci.yml/badge.svg)](https://github.com/gpaul-mcp/MCP_ravelry/actions/workflows/ci.yml)
 [![MCP SDK v2](https://img.shields.io/badge/MCP_SDK-v2-blue)](https://ts.sdk.modelcontextprotocol.io/v2/)
@@ -48,6 +48,8 @@ claude mcp add --transport http ravelry https://ravelry-mcp.gonz-paul.dev/mcp
 }
 ```
 
+**New here?** [Everything it can do](docs/capabilities.md), organised by what you want to do, and [how to set up a Claude project as your knitting & crochet guide](docs/claude-project.md) (instructions to paste included).
+
 Then try one of the [example prompts](#tools), or the built-in starters: **Find a pattern**, **Substitute a yarn**, **What can I make with this yarn?** and **Yarn shops near me**.
 
 > The hosted server only reads public Ravelry data with this project's read-only API key (with Ravelry's permission), stores nothing about your conversations, and allows 60 requests per minute per user. Prefer to run your own? See [Run it yourself](#run-it-yourself).
@@ -60,7 +62,7 @@ To also let your assistant read **your** stash, queue, projects, favorites and l
 https://ravelry-mcp.gonz-paul.dev/account/mcp
 ```
 
-The first time, your assistant opens a page where you sign in with Ravelry, then confirm on a second page which app gets access. Access is **read-only**: nothing can be changed on Ravelry. You can revoke it at any time from your Ravelry account's app settings.
+The first time, your assistant opens a page where you sign in with Ravelry, then confirm on a second page which app gets access. Reading is the default; changing your stash, queue and projects needs a second permission on the same page, and the assistant confirms each change with you first. You can revoke access at any time from your Ravelry account's app settings.
 
 Then you can ask things like:
 
@@ -92,13 +94,14 @@ What the server stores: your Ravelry username and its Ravelry sign-in tokens, en
 
 The assistant uses these instead of doing knitting arithmetic in its head, so the numbers are right and it can focus on explaining.
 
-| Tool                 | What it does                                                                                                                                                                                                                     |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `adjust_for_gauge`   | Your swatch vs the pattern gauge (typed in, or read from a Ravelry pattern): change needles or not, how big the piece comes out as written, and the pattern's numbers recalculated for your gauge, rounded to the stitch repeat. |
-| `spread_evenly`      | "Increase 13 evenly across 97" → `[k8, M1] 6 times, [k7, M1] 7 times`. Knitting or crochet, flat or in the round.                                                                                                                |
-| `yarn_needed`        | Skeins to buy for a pattern (smallest and largest size) in a given yarn, with a safety margin; warns when the yarn weight differs.                                                                                               |
-| `count_stitches`     | Reads written rows (`*k2, p2; rep from * to last 2 sts, k2`, `(sc, inc) x 6 (18)`) and counts what each step uses and makes; flags rows that don't add up and counts that differ from the pattern's.                             |
-| `crafting_reference` | Needle and hook sizes (metric, US, UK, Japanese), yarn weights across regions (US worsted = UK aran = AU 10 ply), US↔UK crochet and knitting terms, and standard abbreviations.                                                  |
+| Tool                  | What it does                                                                                                                                                                                                                     |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adjust_for_gauge`    | Your swatch vs the pattern gauge (typed in, or read from a Ravelry pattern): change needles or not, how big the piece comes out as written, and the pattern's numbers recalculated for your gauge, rounded to the stitch repeat. |
+| `spread_evenly`       | "Increase 13 evenly across 97" → `[k8, M1] 6 times, [k7, M1] 7 times`. Knitting or crochet, flat or in the round.                                                                                                                |
+| `yarn_needed`         | Skeins to buy for a pattern (smallest and largest size) in a given yarn, with a safety margin; warns when the yarn weight differs.                                                                                               |
+| `convert_yarn_amount` | Grams ↔ meters ↔ yards ↔ skeins for a yarn (its own ball-band ratio) or a yarn weight (typical ratio, marked as an estimate): "I have 200 g of Rios", "how many grams is 300 m of DK?".                                          |
+| `count_stitches`      | Reads written rows (`*k2, p2; rep from * to last 2 sts, k2`, `(sc, inc) x 6 (18)`) and counts what each step uses and makes; flags rows that don't add up and counts that differ from the pattern's.                             |
+| `crafting_reference`  | Needle and hook sizes (metric, US, UK, Japanese), yarn weights across regions (US worsted = UK aran = AU 10 ply), US↔UK crochet and knitting terms, and standard abbreviations.                                                  |
 
 Starters: **Read me this row**, **Chart ↔ written instructions**, **Find a pattern from a photo** and **Fix my knitting or crochet problem**.
 
@@ -135,6 +138,7 @@ Starters: **Read me this row**, **Chart ↔ written instructions**, **Find a pat
 | `discover_patterns_for_me`   | New patterns from your own taste (techniques, categories, designers in your favorites), or to learn a technique you haven't used yet, leaving out what you already favorited, queued or made.                       |
 | `get_my_needles`             | Your needles and hooks; with a pattern, which sizes you have and what's missing (circulars or DPNs for patterns worked in the round).                                                                               |
 | `get_row_counter`            | A row counter card for a project: big + / − buttons you tap while crafting, several named counters (rows, repeats, decreases), a target and the position in the pattern repeat. Also "where am I?" across projects. |
+| `set_my_preferences`         | Your units: metric (meters, grams, cm) or imperial (yards, ounces, inches). The assistant answers in them and widgets show them.                                                                                    |
 | `update_row_counter`         | Changes a counter from the chat ("add 4 rows", "set a 48-row target", "8-row repeat"). Counters are kept on this server (encrypted), not on Ravelry; "Save to Ravelry log" writes the position to the project.      |
 
 Plus three extra starters: **What should I make next?**, **Use up my stash** and **Add yarn to my stash from a photo**.
@@ -151,22 +155,12 @@ Ravelry itself does the yarn bookkeeping: when a project uses part of a stash en
 
 That way "what can I make with my stash?" and "what can I start from my queue?" only count yarn that is really free.
 
-### Cards in the chat
+### Widgets in the chat
 
-In apps that support [MCP Apps](https://modelcontextprotocol.io/extensions/apps) (Claude, ChatGPT, VS Code…), results show up as interactive cards: pattern and yarn photos, your stash by yarn weight, a "what can I start" view of your queue, receipt matches with confidence badges, and shop cards with map links. Buttons on the cards open Ravelry, show details, or ask your assistant for yarn ideas or to queue a pattern. Other apps get the same results as text.
+In apps that support [MCP Apps](https://modelcontextprotocol.io/extensions/apps) (Claude, ChatGPT…), two kinds of results show up as interactive widgets; everything else stays plain text:
 
-Every tool except the two `add_to_my_*` ones is read-only (`readOnlyHint`). All of them validate their input against the values Ravelry accepts and return typed `structuredContent` described by an `outputSchema`.
-
-Example prompts:
-
-- "I have 400 yards of DK yarn. Find an easy free knitted hat that fits."
-- "Find a free crochet amigurumi pattern written in French."
-- "This pattern calls for a discontinued yarn, what do other knitters use instead?"
-- "Compare three well-rated superwash merino DK yarns."
-- "Are there yarn shops within 5 km of the Louvre?"
-- "My swatch is 24 stitches per 10 cm but Musselburgh wants 6 per inch. What do I cast on?"
-- "Check this round for me: (2 sc, inc) x 6 (24)."
-- "This UK pattern says htr. What is that in US terms?"
+- **Pattern carousel** (`search_patterns`, `discover_patterns_for_me`, `find_patterns_for_my_stash`): swipeable cards with the pattern photo (tap it to open Ravelry), difficulty, yarn weight, yardage, rating and price. Tap 👍 or 👎 on each one; your picks are shared with the assistant as you go, and **Find more like my 👍** asks it to dig deeper in that style. Each card also has **Similar**, **Details** and **+ Queue**.
+- **Row counter** (`get_row_counter`), for a Ravelry project or anything you name: big − / + buttons that respond instantly (saved in the background), keyboard support (↑ / ↓ / space), several counters per project, a target and the position in the pattern repeat, and **Save to Ravelry log**.
 
 ## Run it yourself
 
@@ -353,3 +347,38 @@ manifest.json                   # MCP Bundle manifest
 ## License
 
 MIT, see [LICENSE](LICENSE).
+
+<!-- PORTFOLIO_METADATA_START -->
+<div align="center">
+  <h3>📊 Portfolio Metadata</h3>
+  <p><em>This section is used for automatic project information extraction</em></p>
+</div>
+
+### 📜 Project Overview
+
+Ravelry MCP Server turns AI assistants like Claude and ChatGPT into a knitting and crochet companion, with Ravelry as the backbone. It searches patterns and yarns, reads and updates a maker's own stash, queue and projects through "Sign in with Ravelry", does every crafting calculation exactly, and shows interactive widgets in the chat: a photo carousel of patterns and a row counter. A hosted instance runs at ravelry-mcp.gonz-paul.dev.
+
+### 🎯 Key Features
+
+- Pattern search by technique, yarn weight, yardage, difficulty and fit, shown as a photo carousel with 👍/👎 feedback the assistant uses to refine the next search
+- Personal Ravelry data through OAuth: stash, queue, projects, favorites, library and needles, with project tracking that keeps the stash accurate
+- Exact calculators the assistant calls instead of guessing: gauge adjustment, even increases and decreases, yarn quantities, grams ↔ meters, and a stitch counter that checks written pattern rows
+- Planning from the user's own data: finish-date predictions from their pace, shopping lists after the stash, queue and stash check-ups, pattern suggestions to learn new skills
+- Interactive row counter widget with instant taps saved server-side, for Ravelry projects or anything else
+- Metric or imperial preference, US/UK terminology, needle size and yarn weight conversions
+
+### 🛠️ Technology Stack
+
+- TypeScript
+- Node.js
+- Model Context Protocol (MCP) TypeScript SDK v2
+- MCP Apps (interactive widgets)
+- OAuth 2.1 (oidc-provider, PKCE, dynamic client registration)
+- SQLite with AES-256-GCM encryption
+- Zod
+- Vite
+- Vitest
+- Docker and Cloudflare Tunnel
+- Ravelry API
+
+<!-- PORTFOLIO_METADATA_END -->

@@ -7,7 +7,6 @@ import { YARN_WEIGHTS } from '../ravelry/vocabulary.ts';
 import { patternUrl } from '../tools/format.ts';
 import type { UserContext } from './context.ts';
 import { loadStash, stashEntrySchema, toStashEntry } from './stash.ts';
-import { VIEW_META } from '../view.ts';
 
 /** Ravelry's yarn weight ids (from /yarn_weights.json), for yarns not in its database. */
 const WEIGHT_IDS: Record<(typeof YARN_WEIGHTS)[number], number> = {
@@ -114,7 +113,6 @@ export function registerAccountWrites(server: McpServer, user: UserContext): voi
         ),
         failed: z.array(z.object({ index: z.number(), error: z.string() })),
       }),
-      _meta: VIEW_META,
       annotations: additive,
       scopeChallenge: requireScopes(ACCOUNT_SCOPE, WRITE_SCOPE),
     },
@@ -197,7 +195,6 @@ export function registerAccountWrites(server: McpServer, user: UserContext): voi
         skipped_already_queued: z.array(z.object({ pattern_id: z.number() })),
         failed: z.array(z.object({ pattern_id: z.number(), error: z.string() })),
       }),
-      _meta: VIEW_META,
       annotations: additive,
       scopeChallenge: requireScopes(ACCOUNT_SCOPE, WRITE_SCOPE),
     },
@@ -288,29 +285,25 @@ export function registerAccountWrites(server: McpServer, user: UserContext): voi
     },
     async (input, ctx) => {
       const signal = ctx.mcpReq.signal;
-      const { stash: current } = await user.ravelry.getStash(user.username, input.stash_id, signal);
+      // The total owned lives on the stash's primary pack. Ravelry only lets it be
+      // changed through the stash itself: /packs/{id} refuses packs without a project.
+      const pack = withoutUndefined({
+        colorway: input.colorway,
+        dye_lot: input.dye_lot,
+        ...(input.total_skeins
+          ? { skeins: String(input.total_skeins) }
+          : input.total_length
+            ? { total_length: String(input.total_length), length_units: input.length_units }
+            : {}),
+      });
       const changes = withoutUndefined({
         location: input.location,
         notes: input.notes,
         stash_status_id: input.status ? STASH_STATUS_IDS[input.status] : undefined,
-        pack: withoutUndefined({ colorway: input.colorway, dye_lot: input.dye_lot }),
+        pack: Object.keys(pack).length > 0 ? pack : undefined,
       });
-      if (Object.keys(changes.pack as object).length === 0) delete changes.pack;
       if (Object.keys(changes).length > 0) {
         await user.ravelry.updateStash(user.username, input.stash_id, changes, signal);
-      }
-
-      const primary =
-        current.primary_pack?.id ??
-        current.packs?.find(pack => !pack.project_id && !pack.primary_pack_id)?.id;
-      if (primary && (input.total_skeins || input.total_length)) {
-        await user.ravelry.updatePack(
-          primary,
-          input.total_skeins
-            ? { skeins: String(input.total_skeins) }
-            : { total_length: String(input.total_length), length_units: input.length_units },
-          signal,
-        );
       }
 
       const { stash } = await user.ravelry.getStash(user.username, input.stash_id, signal);

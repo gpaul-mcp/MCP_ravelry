@@ -2,8 +2,9 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod';
 
 import { RavelryApiError, type RavelryClient } from '../ravelry/client.ts';
-import { weightPermalink } from '../ravelry/vocabulary.ts';
+import { weightPermalink, YARN_WEIGHTS } from '../ravelry/vocabulary.ts';
 import { nonEmpty, patternUrl, yarnUrl } from '../tools/format.ts';
+import { yardsPerGram } from '../ravelry/yarn-amounts.ts';
 import {
   CalculationError,
   compareGauge,
@@ -50,6 +51,7 @@ export function registerToolbox(server: McpServer, ravelry: RavelryClient): void
   registerSpreadEvenly(server);
   registerYarnNeeded(server, ravelry);
   registerCountStitches(server);
+  registerConvertYarnAmount(server, ravelry);
   registerCraftingReference(server, ravelry);
 }
 
@@ -409,6 +411,73 @@ function registerYarnNeeded(server: McpServer, ravelry: RavelryClient): void {
   );
 }
 
+function registerConvertYarnAmount(server: McpServer, ravelry: RavelryClient): void {
+  server.registerTool(
+    'convert_yarn_amount',
+    {
+      title: 'Grams ↔ meters ↔ yards',
+      description:
+        'Converts an amount of yarn between grams and length (meters/yards) and skeins, e.g. ' +
+        '"I have 200 g of Rios" or "how many grams is 300 m of DK?". Uses the yarn\'s own skein ' +
+        'data (yarn_id) when given, else a typical ratio for the yarn weight (an estimate). ' +
+        'Yarn is sold by weight in much of the world, but patterns need a length.',
+      inputSchema: z
+        .object({
+          grams: z.number().positive().optional(),
+          meters: z.number().positive().optional(),
+          yards: z.number().positive().optional(),
+          yarn_id: z.number().int().positive().optional(),
+          weight: z.enum(YARN_WEIGHTS).optional().describe('When the exact yarn is unknown.'),
+        })
+        .refine(input => [input.grams, input.meters, input.yards].filter(Boolean).length === 1, {
+          message: 'Give exactly one of grams, meters or yards',
+          path: ['grams'],
+        }),
+      outputSchema: z.object({
+        grams: z.number(),
+        meters: z.number(),
+        yards: z.number(),
+        skeins: z.number().nullable().describe('Of the given yarn.'),
+        yarn: z.string().nullable(),
+        estimated: z.boolean().describe('True when a typical ratio for the weight was used.'),
+        note: z.string(),
+      }),
+      annotations: { ...calculation, openWorldHint: true },
+    },
+    async (input, ctx) => {
+      const [yarn] = input.yarn_id
+        ? await ravelry.getYarns([input.yarn_id], ctx.mcpReq.signal)
+        : [];
+      if (input.yarn_id && !yarn) throw new RavelryApiError(`No yarn with id ${input.yarn_id}.`);
+      const weight = input.weight ?? weightPermalink(yarn?.yarn_weight?.name) ?? null;
+      const perGram = yardsPerGram(yarn, weight);
+      if (!perGram) {
+        throw new CalculationError(
+          'Give a yarn_id with known skein length and weight, or the yarn weight (e.g. "dk").',
+        );
+      }
+      const yards =
+        input.yards ??
+        (input.meters ? input.meters / METERS_PER_YARD : (input.grams ?? 0) * perGram.ratio);
+      const grams = yards / perGram.ratio;
+      const estimated = perGram.source !== 'yarn';
+      return json({
+        grams: Math.round(grams),
+        meters: Math.round(yards * METERS_PER_YARD),
+        yards: Math.round(yards),
+        skeins: yarn?.yardage ? Math.round((yards / yarn.yardage) * 100) / 100 : null,
+        yarn: yarn
+          ? `${yarn.yarn_company?.name ?? yarn.yarn_company_name ?? ''} ${yarn.name}`.trim()
+          : null,
+        estimated,
+        note: estimated
+          ? `Estimate: ${weight} yarn is usually about ${Math.round(perGram.ratio * 100 * METERS_PER_YARD)} m per 100 g; check the ball band.`
+          : `From the yarn's ball band: ${yarn?.yardage} yd per ${yarn?.grams} g.`,
+      });
+    },
+  );
+}
+
 function registerCountStitches(server: McpServer): void {
   server.registerTool(
     'count_stitches',
@@ -450,7 +519,8 @@ function registerCountStitches(server: McpServer): void {
                 makes: z.number(),
               }),
             ),
-            warnings: z.array(z.string()),
+            warnings: z.array(z.string()).describe('Something does not add up.'),
+            notes: z.array(z.string()).describe('Worth knowing, not a problem.'),
           }),
         ),
         problems: z.number().describe('Rows with at least one warning.'),
@@ -590,7 +660,13 @@ function matches(row: Record<string, unknown>, lookup: string): boolean {
     const keys = entries.filter(([key]) =>
       key.startsWith(region === 'japanese' ? 'japanese' : region),
     );
-    if (keys.length > 0) return keys.some(([, v]) => containsToken(v, value));
+    if (keys.length > 0) {
+      // Needle sizes match exactly: "US 8" is not the "8/0" steel hook.
+      if ('mm' in row) {
+        return keys.some(([, v]) => typeof v === 'string' && v.toLowerCase() === value.trim());
+      }
+      return keys.some(([, v]) => containsToken(v, value));
+    }
   }
   const number = Number(wanted);
   if (Number.isFinite(number) && 'mm' in row) return row.mm === number;

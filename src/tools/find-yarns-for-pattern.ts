@@ -5,7 +5,6 @@ import { RavelryApiError, type RavelryClient } from '../ravelry/client.ts';
 import { weightPermalink } from '../ravelry/vocabulary.ts';
 import { patternUrl } from './format.ts';
 import { toYarnSummary, yarnSummarySchema } from './yarns.ts';
-import { VIEW_META } from '../view.ts';
 
 const inputSchema = z.object({
   pattern_id: z.number().int().positive().describe('Ravelry pattern id (from search_patterns).'),
@@ -51,7 +50,6 @@ export function registerFindYarnsForPattern(server: McpServer, ravelry: RavelryC
         'yardage and gauge the pattern calls for and the yarns its designer suggested.',
       inputSchema,
       outputSchema,
-      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ pattern_id, same_weight_only, include_discontinued, limit }, ctx) => {

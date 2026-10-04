@@ -6,7 +6,6 @@ import type { ApiYarn, ApiYarnListItem } from '../ravelry/types.ts';
 import { weightPermalink, YARN_WEIGHTS } from '../ravelry/vocabulary.ts';
 import { rounded } from './format.ts';
 import { toYarnSummary, yarnSummarySchema } from './yarns.ts';
-import { VIEW_META } from '../view.ts';
 
 const METERS_TO_YARDS = 1.0936;
 
@@ -67,7 +66,6 @@ export function registerMatchYarns(server: McpServer, ravelry: RavelryClient): v
         'alternatives; use the yarn ids with add_to_my_stash or get_yarn_details.',
       inputSchema: z.object({ items: z.array(itemSchema).min(1).max(20) }),
       outputSchema,
-      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ items }, ctx) => {

@@ -4,8 +4,7 @@ import * as z from 'zod';
 import type { RavelryClient } from '../ravelry/client.ts';
 import type { ApiNeedleSize, ApiYarn, ApiYarnListItem } from '../ravelry/types.ts';
 import { YARN_ATTRIBUTES, YARN_FIBERS, YARN_WEIGHTS } from '../ravelry/vocabulary.ts';
-import { htmlToText, nonEmpty, rounded, truncate, yarnUrl } from './format.ts';
-import { VIEW_META } from '../view.ts';
+import { htmlToText, nonEmpty, rounded, toMeters, truncate, yarnUrl } from './format.ts';
 
 const MAX_IDS = 20;
 const MAX_NOTES_LENGTH = 2_000;
@@ -17,6 +16,7 @@ export const yarnSummarySchema = z.object({
   url: z.string(),
   weight: z.string().nullable(),
   yards_per_skein: z.number().nullable(),
+  meters_per_skein: z.number().nullable(),
   grams_per_skein: z.number().nullable(),
   machine_washable: z.boolean().nullable(),
   discontinued: z.boolean().nullable(),
@@ -36,6 +36,7 @@ export function toYarnSummary(yarn: ApiYarnListItem | ApiYarn): YarnSummary {
     url: yarnUrl(yarn.permalink),
     weight: yarn.yarn_weight?.name ?? null,
     yards_per_skein: yarn.yardage ?? null,
+    meters_per_skein: toMeters(yarn.yardage),
     grams_per_skein: yarn.grams ?? null,
     machine_washable: yarn.machine_washable ?? null,
     discontinued: yarn.discontinued ?? null,
@@ -116,7 +117,6 @@ export function registerYarnTools(server: McpServer, ravelry: RavelryClient): vo
         'yardage and grams per skein, washability and rating for each match.',
       inputSchema: searchInput,
       outputSchema: searchOutput,
-      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async (input, ctx) => {
@@ -162,7 +162,6 @@ export function registerYarnTools(server: McpServer, ravelry: RavelryClient): vo
           .describe(`Ravelry yarn ids, 1 to ${MAX_IDS} per call.`),
       }),
       outputSchema: detailsOutput,
-      _meta: VIEW_META,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
     async ({ ids }, ctx) => {

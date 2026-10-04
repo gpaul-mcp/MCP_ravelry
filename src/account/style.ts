@@ -5,8 +5,8 @@ import { attributeName, PATTERN_ATTRIBUTES, resolveAttribute } from '../ravelry/
 import type { ApiPattern, ApiPatternListItem } from '../ravelry/types.ts';
 import { resolveCategory, weightPermalink } from '../ravelry/vocabulary.ts';
 import { categoryPath, nonEmpty, range, rounded } from '../tools/format.ts';
-import { patternSummarySchema, toPatternSummary } from '../tools/search-patterns.ts';
-import { VIEW_META } from '../view.ts';
+import { patternSummarySchema, toPatternSummary, withUnits } from '../tools/search-patterns.ts';
+import { CAROUSEL_NOTE, VIEW_META, widgetResult } from '../view.ts';
 import type { UserContext } from './context.ts';
 import {
   count,
@@ -17,11 +17,6 @@ import {
   loadQueue,
 } from './data.ts';
 import { estimateLevel } from './insights.ts';
-
-const json = <T extends Record<string, unknown>>(output: T) => ({
-  content: [{ type: 'text' as const, text: JSON.stringify(output) }],
-  structuredContent: output,
-});
 
 /** Techniques worth learning, easiest first within each craft (Ravelry attribute permalinks). */
 const SKILLS: { permalink: string; craft: 'knitting' | 'crochet'; tier: 1 | 2 | 3 }[] = [
@@ -128,6 +123,7 @@ export function registerStyleTools(server: McpServer, user: UserContext): void {
         }),
         goal: z.string(),
         skill: z.string().nullable(),
+        units: z.enum(['metric', 'imperial']).optional(),
         patterns: z.array(
           patternSummarySchema.extend({
             difficulty: z.number().nullable(),
@@ -211,10 +207,17 @@ export function registerStyleTools(server: McpServer, user: UserContext): void {
         }
         searches.push({ params, why: `a well-loved, approachable way to learn ${attribute.name}` });
       } else {
-        const styles = topStylePermalinks(favoritePatterns);
-        const topCategory = category ?? favoriteCategoryPermalink(favoritePatterns);
-        const designer = profile.favourite_designers[0]?.name;
-        const weight = weightPermalink(profile.favourite_weights[0]?.name);
+        // Favorites say most about taste; what they made counts too.
+        const liked = [...favoritePatterns, ...madePatterns];
+        const styles = topStylePermalinks(liked);
+        const topCategory = category ?? favoriteCategoryPermalink(liked);
+        const designer =
+          profile.favourite_designers[0]?.name ??
+          count(madePatterns.map(p => p.pattern_author?.name)).find(d => d.count >= 2)?.name;
+        const weight = weightPermalink(
+          profile.favourite_weights[0]?.name ??
+            count(madePatterns.map(p => p.yarn_weight?.name))[0]?.name,
+        );
         const base = { craft, availability, sort: 'popularity', page_size: 30 };
         if (styles.length >= 2) {
           searches.push({
@@ -271,16 +274,21 @@ export function registerStyleTools(server: McpServer, user: UserContext): void {
         ).map(p => [p.id, p]),
       );
 
-      return json({
-        profile,
-        goal: input.goal,
-        skill,
-        patterns: picks.map(({ pattern, why }) => ({
-          ...toPatternSummary(pattern),
-          difficulty: rounded(nonEmpty(details.get(pattern.id)?.difficulty_average ?? null)),
-          why,
-        })),
-      });
+      return widgetResult(
+        server,
+        {
+          profile,
+          ...withUnits(user.preferences?.get(user.username).units),
+          goal: input.goal,
+          skill,
+          patterns: picks.map(({ pattern, why }) => ({
+            ...toPatternSummary(pattern),
+            difficulty: rounded(nonEmpty(details.get(pattern.id)?.difficulty_average ?? null)),
+            why,
+          })),
+        },
+        CAROUSEL_NOTE,
+      );
     },
   );
 }

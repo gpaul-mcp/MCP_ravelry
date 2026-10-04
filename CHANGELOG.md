@@ -1,5 +1,42 @@
 # Changelog
 
+## 2.8.0
+
+### Added
+
+- Docs: [everything the server can do](docs/capabilities.md), by goal, and [a Claude project guide](docs/claude-project.md) with instructions to paste and an About me template.
+- Grams: stash yarn recorded only by weight gets a length (the yarn's own grams-to-length ratio, else a typical one for its weight, flagged by `length_source`), so it counts in every stash tool; the shopping list adds grams to buy; `convert_yarn_amount` converts grams ↔ meters ↔ yards ↔ skeins.
+
+### Fixed
+
+- Patterns free on the designer's website with a paid Ravelry PDF were shown as free: `get_pattern_details` now has `access` (free, free_online, paid), the PDF `price` and the `free_url`, and the carousel shows "Free online" with the PDF price.
+
+## 2.7.0
+
+### Added
+
+- Units: `set_my_preferences` saves metric or imperial for signed-in users; the assistant is told to answer in those units, and results carry meters next to yards (`meterage`, `meters_per_skein`, stash `meters`, `meters_to_buy`, `meters_to_go`, `meters_per_day`). The carousel has an m / yd switch (defaults from the saved choice, then the device, then the language).
+- Row counters for anything, not only Ravelry projects: `project_name` (e.g. "Onigiri Pouch").
+
+### Changed
+
+- When the app shows widgets, results shown in the carousel or counter tell the assistant not to repeat them, so it answers in a sentence instead of listing everything again. Apps without widgets get the full text as before.
+
+## 2.6.0
+
+### Changed
+
+- Widgets only where they help: a pattern carousel (photos, facts, 👍 / 👎 shared with the assistant, "find more like my 👍", similar, details, queue) and a real row counter (instant taps saved in the background, keyboard support, target and repeat settings). Other tools return text only.
+- The widget picks its layout from the result itself; hosts that do not say which tool ran showed "Done." before.
+
+### Fixed
+
+- `update_stash_entry` failed with HTTP 400 when changing the amount owned (Ravelry refuses `/packs` for stash packs); the amount now goes through the stash update.
+- Project tools could read someone else's project by id (Ravelry ignores the username in the URL); the owner is now checked.
+- Batches with one unknown pattern or yarn id no longer fail as a whole (Ravelry answers 404 for the batch); `missing_ids` works.
+- `count_stitches`: shaping repeated to the end ("inc around"), turning chains that count as a stitch, short rows, "work in pattern".
+- Queue names without "by Designer", queue time in days, oldest yarn only after a year, exact US needle lookup, discovery uses made projects too.
+
 ## 2.5.0
 
 ### Added

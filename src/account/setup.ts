@@ -4,6 +4,7 @@ import type { McpServerFactory } from '@modelcontextprotocol/server';
 
 import { AccountStore } from '../auth/accounts.ts';
 import { CounterStore } from './counters.ts';
+import { PreferenceStore } from './preferences.ts';
 import { deriveKeys } from '../auth/crypto.ts';
 import { openDatabase, pruneExpired } from '../auth/db.ts';
 import { RavelryOAuth } from '../auth/ravelry-oauth.ts';
@@ -37,6 +38,7 @@ export function setupAccounts(options: AccountSetupOptions) {
   });
   const accounts = new AccountStore(db, keys.storage, ravelryOAuth);
   const counters = new CounterStore(db, keys.storage);
+  const preferences = new PreferenceStore(db, keys.storage);
   const resourceUrl = `${config.publicUrl}${ACCOUNT_PATH}`;
   const auth = new AuthServer({
     publicUrl: config.publicUrl,
@@ -63,6 +65,7 @@ export function setupAccounts(options: AccountSetupOptions) {
       ravelry,
       publicRavelry,
       counters,
+      preferences,
     });
   };
 

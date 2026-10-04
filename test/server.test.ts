@@ -83,6 +83,7 @@ describe('ravelry MCP server', () => {
 
     expect(tools.map(tool => tool.name).sort()).toEqual([
       'adjust_for_gauge',
+      'convert_yarn_amount',
       'count_stitches',
       'crafting_reference',
       'find_yarn_shops',
@@ -168,7 +169,15 @@ describe('ravelry MCP server', () => {
   });
 
   it('returns curated details and reports missing ids', async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse({ patterns: { '101': detailedPattern } }));
+    // Like Ravelry: one unknown id makes the whole batch 404, so it is split.
+    fetchMock.mockImplementation(input => {
+      const ids = new URL(input).searchParams.get('ids');
+      return Promise.resolve(
+        ids === '101'
+          ? jsonResponse({ patterns: { '101': detailedPattern } })
+          : jsonResponse({ error: '404 Not Found' }, 404),
+      );
+    });
 
     const result = await client.callTool({
       name: 'get_pattern_details',
@@ -195,9 +204,9 @@ describe('ravelry MCP server', () => {
     });
     expect(String(output.patterns[0]?.notes)).toMatch(/… \[truncated\]$/);
 
-    const requestUrl = requestedUrl(fetchMock);
-    expect(requestUrl.pathname).toBe('/patterns.json');
-    expect(requestUrl.searchParams.get('ids')).toBe('101 999');
+    expect(
+      fetchMock.mock.calls.map(([input]) => new URL(input as string).searchParams.get('ids')),
+    ).toEqual(['101 999', '101', '999']);
   });
 
   it('turns Ravelry auth failures into an actionable tool error', async () => {
@@ -217,7 +226,7 @@ function requestedUrl(fetchMock: ReturnType<typeof vi.fn<typeof fetch>>, call = 
 }
 
 describe('interactive view (MCP Apps)', () => {
-  it('links the main tools to the view and serves it with Ravelry image access', async () => {
+  it('links pattern results to the view and serves it with Ravelry image access', async () => {
     const { client, close } = await connect(routeFetch({}));
     try {
       const { tools } = await client.listTools();
@@ -226,13 +235,8 @@ describe('interactive view (MCP Apps)', () => {
         return ui?.resourceUri === 'ui://ravelry/view.html';
       });
       expect(withView.map(tool => tool.name).sort()).toEqual([
-        'find_yarn_shops',
-        'find_yarns_for_pattern',
-        'get_pattern_details',
-        'get_yarn_details',
-        'match_yarns',
+        // Widgets only where they help: pattern results (and, signed in, the row counter).
         'search_patterns',
-        'search_yarns',
       ]);
 
       const resource = await client.readResource({ uri: 'ui://ravelry/view.html' });

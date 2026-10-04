@@ -1,5 +1,6 @@
 import type { RavelryClient } from '../ravelry/client.ts';
 import type { CounterStore } from './counters.ts';
+import type { PreferenceStore } from './preferences.ts';
 
 /** Everything the personal tools need for one signed-in user. */
 export interface UserContext {
@@ -10,4 +11,6 @@ export interface UserContext {
   publicRavelry: RavelryClient;
   /** Row counters kept on this server (absent where there is no database). */
   counters?: CounterStore;
+  /** Per-user preferences such as units (absent where there is no database). */
+  preferences?: PreferenceStore;
 }

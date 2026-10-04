@@ -60,3 +60,18 @@ export function rounded(value: number | null, decimals = 1): number | null {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
 }
+
+export const METERS_PER_YARD = 0.9144;
+
+/** Yards → whole meters (null stays null), for users who work in metric. */
+export function toMeters(yards: number | null | undefined): number | null {
+  return yards == null ? null : Math.round(yards * METERS_PER_YARD);
+}
+
+/** "119–558 m" from a yardage range. */
+export function metersRange(min: number | null | undefined, max: number | null | undefined) {
+  const low = toMeters(min);
+  const high = toMeters(max);
+  if (low === null) return null;
+  return high !== null && high !== low ? `${low}–${high} m` : `${low} m`;
+}

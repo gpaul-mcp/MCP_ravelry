@@ -3,11 +3,11 @@ import * as z from 'zod';
 
 import { resolveCategory, weightPermalink } from '../ravelry/vocabulary.ts';
 import { categoryPath, patternUrl, range, rounded } from '../tools/format.ts';
-import { patternSummarySchema, toPatternSummary } from '../tools/search-patterns.ts';
+import { patternSummarySchema, toPatternSummary, withUnits } from '../tools/search-patterns.ts';
 import type { UserContext } from './context.ts';
 import { count, getPatternsInBatches } from './data.ts';
 import { loadStash, patternYardage, type StashEntry, totalsByWeight } from './stash.ts';
-import { VIEW_META } from '../view.ts';
+import { CAROUSEL_NOTE, VIEW_META, widgetResult } from '../view.ts';
 
 const readOnly = { readOnlyHint: true, idempotentHint: true, openWorldHint: true } as const;
 
@@ -80,6 +80,7 @@ function registerPatternsForStash(server: McpServer, user: UserContext): void {
           .array(stashRef)
           .describe('Selected entries without a known weight or yardage; add them on Ravelry.'),
         missing_stash_ids: z.array(z.number()),
+        units: z.enum(['metric', 'imperial']).optional(),
       }),
       _meta: VIEW_META,
       annotations: readOnly,
@@ -121,11 +122,16 @@ function registerPatternsForStash(server: McpServer, user: UserContext): void {
       );
 
       const found = new Set(stash.map(entry => entry.id));
-      return json({
-        groups: results,
-        skipped: selected.filter(entry => !entry.weight || !entry.yards).map(toRef),
-        missing_stash_ids: (input.stash_ids ?? []).filter(id => !found.has(id)),
-      });
+      return widgetResult(
+        server,
+        {
+          groups: results,
+          ...withUnits(user.preferences?.get(user.username).units),
+          skipped: selected.filter(entry => !entry.weight || !entry.yards).map(toRef),
+          missing_stash_ids: (input.stash_ids ?? []).filter(id => !found.has(id)),
+        },
+        CAROUSEL_NOTE,
+      );
     },
   );
 }
@@ -176,7 +182,6 @@ function registerPickFromQueue(server: McpServer, user: UserContext): void {
         ),
         queue_size: z.number(),
       }),
-      _meta: VIEW_META,
       annotations: readOnly,
     },
     async ({ limit }, ctx) => {
@@ -283,7 +288,6 @@ function registerCraftingProfile(server: McpServer, user: UserContext): void {
         favorites_count: z.number(),
         summary: z.string(),
       }),
-      _meta: VIEW_META,
       annotations: readOnly,
     },
     async (_input, ctx) => {

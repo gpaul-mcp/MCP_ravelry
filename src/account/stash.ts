@@ -2,7 +2,8 @@ import * as z from 'zod';
 
 import type { ApiPack, ApiPattern, ApiStash, ApiStashFull } from '../ravelry/types.ts';
 import { weightPermalink } from '../ravelry/vocabulary.ts';
-import { nonEmpty, yarnUrl } from '../tools/format.ts';
+import { yardsPerGram } from '../ravelry/yarn-amounts.ts';
+import { nonEmpty, toMeters, yarnUrl } from '../tools/format.ts';
 import type { UserContext } from './context.ts';
 
 const METERS_TO_YARDS = 1.0936;
@@ -21,6 +22,15 @@ export const stashEntrySchema = z.object({
   skeins: z.number().nullable().describe('Skeins still free (not used by a project).'),
   yards: z.number().nullable().describe('Yards still free: total minus what projects use.'),
   total_yards: z.number().nullable().describe('Yards the entry started with.'),
+  meters: z.number().nullable().describe('Free length in meters.'),
+  length_source: z
+    .enum(['recorded', 'from_grams', 'typical_for_weight'])
+    .nullable()
+    .describe(
+      "recorded on Ravelry; from_grams: worked out from the grams with the yarn's own ratio; " +
+        'typical_for_weight: an estimate from the grams and a usual ratio for the weight.',
+    ),
+  total_meters: z.number().nullable(),
   grams: z.number().nullable(),
   in_projects: z
     .array(z.object({ project_id: z.number(), yards: z.number().nullable() }))
@@ -56,12 +66,30 @@ export function toStashEntry(stash: ApiStash | ApiStashFull): StashEntry {
   const remainder = packs.find(pack => !pack.project_id && pack.primary_pack_id);
   const projectPacks = packs.filter(pack => pack.project_id);
 
-  const totalYards =
+  const weight =
+    weightPermalink(stash.yarn?.yarn_weight?.name) ??
+    weightPermalink(stash.personal_yarn_weight?.name) ??
+    weightPermalink(stash.yarn_weight_name) ??
+    null;
+  const recordedTotal =
     yardsOf(primary) ??
     (Number(primary?.skeins) && stash.yarn?.yardage
       ? Number(primary?.skeins) * stash.yarn.yardage
       : null);
-  const freeYards = remainder ? yardsOf(remainder) : totalYards;
+  // Yarn recorded only by weight (common where yarn is sold in grams): work the length out.
+  const perGram = recordedTotal === null ? yardsPerGram(stash.yarn, weight) : null;
+  const fromGrams = (pack: ApiPack | undefined) =>
+    perGram && pack?.total_grams ? pack.total_grams * perGram.ratio : null;
+  const totalYards = recordedTotal ?? fromGrams(primary);
+  const freeYards = remainder ? (yardsOf(remainder) ?? fromGrams(remainder)) : totalYards;
+  const lengthSource =
+    totalYards === null
+      ? null
+      : recordedTotal !== null
+        ? 'recorded'
+        : perGram?.source === 'yarn'
+          ? 'from_grams'
+          : 'typical_for_weight';
   const freeSkeins = Number((remainder ?? primary)?.skeins);
   const gramsPerSkein = primary?.grams_per_skein ?? stash.yarn?.grams;
 
@@ -80,15 +108,14 @@ export function toStashEntry(stash: ApiStash | ApiStashFull): StashEntry {
     yarn: yarnName,
     yarn_id: stash.yarn?.id ?? null,
     yarn_url: stash.yarn ? yarnUrl(stash.yarn.permalink) : null,
-    weight:
-      weightPermalink(stash.yarn?.yarn_weight?.name) ??
-      weightPermalink(stash.personal_yarn_weight?.name) ??
-      weightPermalink(stash.yarn_weight_name) ??
-      null,
+    weight,
     colorway: nonEmpty(stash.colorway_name),
     skeins: Number.isFinite(freeSkeins) && freeSkeins > 0 ? freeSkeins : null,
     yards: round(freeYards),
     total_yards: round(totalYards),
+    meters: toMeters(freeYards),
+    length_source: lengthSource,
+    total_meters: toMeters(totalYards),
     // Ravelry does not always update grams on the remainder pack, so derive them from skeins.
     grams:
       freeSkeins && gramsPerSkein
