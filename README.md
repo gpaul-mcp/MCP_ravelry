@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/gpaul-mcp-mcp-ravelry-badge.png)](https://mseep.ai/app/gpaul-mcp-mcp-ravelry)
+
 # Ravelry MCP Server
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that turns AI assistants into a knitting and crochet companion, with [Ravelry](https://www.ravelry.com) as the backbone: pattern and yarn search with a photo carousel, your stash, queue and projects, exact calculators, and a row counter.
