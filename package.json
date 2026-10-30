@@ -46,7 +46,7 @@
     "@modelcontextprotocol/ext-apps": "^2.0.3",
     "@modelcontextprotocol/node": "^2.1.0",
     "@modelcontextprotocol/server": "^2.2.0",
-    "oidc-provider": "^9.12.2",
+    "oidc-provider": "^9.13.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
