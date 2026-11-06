@@ -43,8 +43,8 @@
     "dev:ui": "vite build --watch"
   },
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "^2.0.3",
-    "@modelcontextprotocol/node": "^2.1.0",
+    "@modelcontextprotocol/ext-apps": "^2.0.4",
+    "@modelcontextprotocol/node": "^2.1.2",
     "@modelcontextprotocol/server": "^2.2.0",
     "oidc-provider": "^9.12.2",
     "zod": "^4.6.5"
