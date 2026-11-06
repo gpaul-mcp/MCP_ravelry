@@ -46,14 +46,14 @@
     "@modelcontextprotocol/ext-apps": "^2.0.3",
     "@modelcontextprotocol/node": "^2.1.0",
     "@modelcontextprotocol/server": "^2.2.0",
-    "oidc-provider": "^9.12.2",
+    "oidc-provider": "^9.13.3",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@modelcontextprotocol/client": "^2.2.0",
     "@types/node": "^24.19.1",
-    "@types/oidc-provider": "^9.12.1",
+    "@types/oidc-provider": "^9.13.1",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",
